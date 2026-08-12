@@ -16,9 +16,9 @@
 
 ¿Qué cambió en la forma en que el equipo entiende el problema?
 
-- Comprendimos que no debemos presuponer la solución ni asumir "necesidades urgentes" categóricas a partir de pocos casos, sino plantear los hallazgos como tendencias e hipótesis de trabajo.
-- Entendimos que la barrera principal no parece ser la falta de creatividad ni de capital monetario, sino la dificultad logística para formar equipos de trabajo con habilidades variadas.
-- Nos dimos cuenta de la importancia de separar el problema de la solución, enfocándonos en lo que el usuario intenta lograr antes de definir la herramienta.
+- Comprendimos el valor de abordar nuestros hallazgos con cautela metodológica, interpretando lo expresado por los usuarios como tendencias e hipótesis de trabajo en lugar de conclusiones absolutas.
+- Notamos que las principales barreras que perciben los estudiantes no parecen centrarse en la falta de creatividad ni en el aspecto monetario, sino en la complejidad de coordinar equipos con habilidades diversas.
+- Reconocimos la importancia de mantener una clara distinción entre el problema y la solución, priorizando la comprensión de lo que el estudiante busca lograr antes de pensar en una herramienta específica.
 
 ---
 
@@ -26,7 +26,7 @@
 
 ¿Por qué eligieron a ese usuario como foco principal?
 
-Elegimos al estudiante uninorteño que tiene una idea o proyecto emergente porque representa el punto de origen del ecosistema de innovación. Si este tipo de usuario no logra estructurar su equipo ni dar visibilidad a su propuesta en las primeras fases, los proyectos difícilmente llegan a etapas de prototipado o apoyo institucional.
+Decidimos enfocar nuestros esfuerzos en el estudiante uninorteño que lidera una propuesta emergente, por ser la figura central del proceso de innovación. Consideramos que si en esta etapa inicial no encuentra facilidades para estructurar su trabajo o dar a conocer su idea, resulta mucho más complejo que la iniciativa progrese hacia fases de prototipado o apoyos de mayor escala.
 
 ---
 
@@ -53,13 +53,11 @@ Decidimos priorizar la necesidad de conexión entre proyectos y colaboradores po
 ¿Qué podría salir mal si el equipo interpreta mal el problema?
 
 - Podríamos diseñar un sistema centrado únicamente en la publicación de proyectos pero poco efectivo para generar interacciones o contrataciones reales de roles.
-- Riesgo de asumir que los estudiantes usarán espontáneamente una herramienta nueva sin considerar sus dinámicas actuales de comunicación.
-- Enfocar el diseño en características muy complejas de gestión de equipos cuando quizás la necesidad primaria sea solo la difusión inicial.
+- Riesgo de asumir un uso espontáneo por parte de los estudiantes sin considerar sus dinámicas y canales habituales de interacción.
+- Concentrar esfuerzos en funcionalidades avanzadas de organización de equipos cuando la prioridad inicial podría ser simplemente la visibilidad de las propuestas.
 
 ---
 
 ## Conclusión del equipo
 
-Escriban un párrafo corto explicando cómo pasaron de investigar a definir un problema concreto para trabajar.
-
-A partir del análisis de los hallazgos de la primera semana, el equipo pasó de recopilar experiencias individuales a sintetizar patrones comunes entre los estudiantes con iniciativas. En lugar de asumir que la solución ya estaba dada, filtramos los testimonios para identificar que la mayor dificultad radica en la falta de mecanismos para reclutar colaboradores fuera del círculo personal de amigos y difundir la propuesta. Esto nos permitió delimitar un problema concreto: la limitación de alcance y equipo que sufren los proyectos emergentes en Uninorte, estableciendo así un punto de vista claro que orientará la generación de ideas en la siguiente fase.
+A partir de la información recopilada en la primera etapa, el equipo pasó del análisis de casos individuales a la identificación de patrones compartidos entre estudiantes con iniciativas. Al reflexionar sobre la evidencia sin dar respuestas por sentadas, identificamos que uno de los mayores desafíos radica en la dificultad para sumar colaboradores fuera del entorno personal y lograr difusión inicial. Esto nos permitió concretar nuestro enfoque en las limitaciones de alcance y conformación de equipos que experimentan los proyectos emergentes en Uninorte, estableciendo así un marco claro para la generación de ideas en la siguiente fase.
