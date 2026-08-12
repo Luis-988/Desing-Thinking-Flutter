@@ -2,7 +2,7 @@
 
 ## Información del equipo
 
-**Nombre del equipo:**
+**Nombre del equipo:**  Grupo 1
 
 **Integrantes:**
 - Vanessa Orozco
