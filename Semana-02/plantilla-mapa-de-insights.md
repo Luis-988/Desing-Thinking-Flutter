@@ -57,11 +57,11 @@ Muestra que existe una brecha entre las iniciativas estudiantiles emergentes y l
 
 ¿Qué cosas parecían importantes para unos usuarios, pero no para otros?
 
-- 
+- Mientras los emprendimientos individuales priorizan la visibilidad directa y canales de comercialización, las iniciativas de impacto colectivo o tecnológico requieren de forma prioritaria la definición de roles y la infraestructura técnica.
 
-- 
+- Unos estudiantes consideran la falta de presupuesto como la barrera principal, mientras que quienes han liderado proyectos consolidados señalan que la estructuración del equipo y la logística inicial son aspectos aún más críticos.
 
-- 
+- Existe una tensión entre el deseo de recibir apoyo financiero inmediato y la disposición a utilizar canales de visibilidad y acompañamiento metodológico.
 
 ---
 
@@ -71,11 +71,11 @@ Completen la frase:
 
 `Los usuarios necesitan...`
 
-1.
+1. Encontrar espacios o canales accesibles dentro del entorno universitario para dar a conocer sus ideas y proyectos ante la comunidad.
 
-2.
+2. Conectar con otros estudiantes interesados en colaborar, basándose en habilidades o roles específicos y no solo en relaciones de amistad preexistentes.
 
-3.
+3. Formas sencillas y tempranas de validar el interés o la utilidad de sus propuestas directamente con su público objetivo.
 
 ---
 
@@ -83,11 +83,11 @@ Completen la frase:
 
 ¿Qué impide hoy que los usuarios resuelvan bien este problema?
 
-- 
+- Ausencia de una plataforma o punto de encuentro centralizado donde la comunidad universitaria pueda explorar proyectos estudiantiles.
 
-- 
+- Dificultad para identificar y contactar a estudiantes de distintas carreras o facultades con habilidades complementarias.
 
-- 
+- Procesos poco claros o percibidos como distantes para gestionar apoyo de difusión o recursos institucionales en etapas iniciales.
 
 ---
 
@@ -95,4 +95,4 @@ Completen la frase:
 
 Escriban una idea breve que conecte comportamiento, necesidad y oportunidad.
 
-`Nos dimos cuenta de que...`
+`Nos dimos cuenta de que...`  las iniciativas estudiantiles suelen estancarse o sobrecargar a sus creadores no por falta de buenas ideas, sino porque dependen del círculo cercano para reclutar colaboradores y difundir, lo que sugiere una oportunidad de facilitar conexiones por roles e interés antes de la implementación.
