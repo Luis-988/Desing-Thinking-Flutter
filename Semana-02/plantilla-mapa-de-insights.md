@@ -2,9 +2,13 @@
 
 ## Información del equipo
 
-**Nombre del equipo:**
+*Nombre del equipo:* Grupo 1
 
-**Integrantes:**
+*Integrantes:*
+- Vanessa Orozco
+- Estefanía Paternina
+- Luis Robles
+- Daniel Castañeda
 
 ---
 
@@ -12,11 +16,9 @@
 
 ¿Qué tipos de usuarios revisó el equipo esta semana?
 
-- 
-
-- 
-
-- 
+- Estudiante emprendedora con iniciativas individuales de productos de consumo (postres).
+- Estudiante con perfil técnico (Ingeniería de Sistemas) involucrado en iniciativas familiares e individuales de comercio.
+- Líder de un proyecto estudiantil colaborativo de innovación/deportes dentro de la comunidad universitaria (Unisports).
 
 ---
 
@@ -26,23 +28,30 @@
 
 ### Hallazgo 1
 
-**¿Qué observamos?**
+*¿Qué observamos?*
+Se observa una tendencia donde los estudiantes que inician proyectos dependen casi exclusivamente de sus círculos cercanos (familia y amigos) tanto para sostener la logística diaria como para reclutar colaboradores.
 
-**¿Por qué importa?**
+*¿Por qué importa?*
+Sugiere la hipótesis de que el crecimiento de las iniciativas estudiantiles se ve limitado por el alcance reducido de sus redes personales, dificultando la incorporación de personas con perfiles complementarios.
 
 ### Hallazgo 2
 
-**¿Qué observamos?**
+*¿Qué observamos?*
+Los entrevistados señalan que la difusión y la visibilidad dentro de la universidad representan un reto considerable para conectar con su público o con la comunidad universitaria.
 
-**¿Por qué importa?**
+*¿Por qué importa?*
+Indica que, incluso cuando existe una propuesta con potencial o ya desarrollada, la falta de canales centralizados de comunicación dificulta que la comunidad se entere y valide la iniciativa.
 
 ### Hallazgo 3
 
-**¿Qué observamos?**
+*¿Qué observamos?*
+Se percibe la intención y el interés de contar con el respaldo de la institución (ya sea en difusión o infraestructura), pero los estudiantes expresan incertidumbre sobre cómo acceder o solicitar dicho apoyo.
 
-**¿Por qué importa?**
+*¿Por qué importa?*
+Muestra que existe una brecha entre las iniciativas estudiantiles emergentes y las oportunidades o recursos que la universidad podría llegar a ofrecer.
 
 ---
+
 
 ## Tensiones o contradicciones
 
