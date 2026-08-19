@@ -104,9 +104,9 @@ La plataforma se quedaría en un catálogo pasivo de ideas, sin lograr el objeti
 
 Para la semana 4 avanzan las siguientes versiones seleccionadas:
 
-1. *Flujo 1 (Proponer una idea):* Versión A (Estructura guiada paso a paso).
-2. *Flujo 2 (Explorar ideas):* Versión B (Vista en tarjetas con filtro por roles y estado).
-3. *Flujo 3 (Unirse / Formar equipo):* Versión A (Postulación con breve presentación de perfil y gestión de solicitudes).
+1. Flujo 1 (Proponer una idea): Versión A (Estructura guiada paso a paso).
+2. Flujo 2 (Explorar ideas): Versión B (Vista en tarjetas con filtro por roles y estado).
+3. Flujo 3 (Unirse / Formar equipo): Versión A (Postulación con breve presentación de perfil y gestión de solicitudes).
 
 ---
 
