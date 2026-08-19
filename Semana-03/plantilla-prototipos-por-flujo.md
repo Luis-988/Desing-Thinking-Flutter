@@ -49,9 +49,9 @@ Publicar su idea de proyecto definiendo el problema, la descripción y los roles
 
 ### Evidencia en Figma
 
-**Enlace versión A:** *[Insertar enlace al frame del prototipo en Figma - Versión A]*
+**Enlace versión A:** https://www.figma.com/make/zS8iWAOKIajA1U4oFQMnT9/Generar-c%C3%B3digo-solicitado?t=M0w9oTZyHbykjcJs-1
 
-**Enlace versión B:** *[Insertar enlace al frame del prototipo en Figma - Versión B]*
+**Enlace versión B:** https://www.figma.com/make/zULtNToGKBkSjNzWQg4vGF/Mobile-project-collaboration-interface?t=LcYfgbQppJqEF8f4-1
 
 ### Resultado de la validación exploratoria
 
