@@ -116,9 +116,9 @@ Explorar las propuestas publicadas dentro de la plataforma y filtrar proyectos s
 
 ### Evidencia en Figma
 
-**Enlace versión A:** *[Insertar enlace al frame del prototipo en Figma - Versión A]*
+**Enlace versión A:** https://www.figma.com/make/l7hcniqTeqB5lExF7tIP76/Versi%C3%B3n-A?t=00NKv4MKqT0SnDva-1
 
-**Enlace versión B:** *[Insertar enlace al frame del prototipo en Figma - Versión B]*
+**Enlace versión B:** https://www.figma.com/make/iw34YU5xodFvFQ71jrL32G/Versi%C3%B3n-B?t=wOSKQC0Hsy7dCSap-1
 
 ### Resultado de la validación exploratoria
 
@@ -210,7 +210,3 @@ Estudiante en el rol de líder de iniciativa y estudiante en rol de postulante.
 - Fue ampliamente preferida en la dinámica de validación exploratoria por ambas partes (líder y postulante).
 
 ---
-
-## Flujo 4
-
-*(Se deja vacío este bloque al haber trabajado con 3 flujos prioritarios)*
