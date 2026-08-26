@@ -64,11 +64,11 @@ Enumeren los elementos que van a construir y cómo se conectan entre sí.
 
 ¿Cómo se conectan entre sí los flujos aprobados?
 
-- 
+- El estudiante entra al *Feed de Exploración (Flujo 2 - Versión B), aplica un filtro por rol y selecciona la tarjeta del proyecto *Unisports.
 
-- 
+- Al presionar la tarjeta o el badge del rol, se conecta directamente con la *Ficha de Detalle y Postulación (Flujo 3 - Versión A)* para postularse a la vacante.
 
-- 
+- Desde el encabezado principal del feed, un botón de acción rápida permite cambiar al *Formulario de Registro (Flujo 1 - Versión A)* para publicar una nueva idea.
 
 ---
 
@@ -80,9 +80,9 @@ Enumeren los elementos que van a construir y cómo se conectan entre sí.
 
 Si usan algún apoyo adicional, indíquenlo aquí:
 
-- 
+- Figma Interactive Components (para estados de chips y prototipado de botones).
 
-- 
+- Figma Smart Animate (para transiciones suaves entre pantallas).
 
 ---
 
@@ -90,11 +90,11 @@ Si usan algún apoyo adicional, indíquenlo aquí:
 
 ¿Qué creen que sucederá cuando un usuario vea o use este prototipo?
 
-- 
+- Los usuarios encontrarán más ágil filtrar proyectos usando los chips horizontales que abriendo un menú lateral complejo.
 
-- 
+- La distinción clara entre "Ver Proyecto" y "Postularme a Vacante" reducirá la confusión en el proceso de unirse a un equipo.
 
-- 
+- El formulario estructurado en pasos (Versión A) incentivará a los estudiantes a registrar sus ideas sin sentirse abrumados por texto extenso.
 
 ---
 
@@ -106,8 +106,8 @@ Peguen aquí el enlace al archivo o prototipo de Figma:
 
 ¿Qué puede recorrer o ver una persona dentro de ese prototipo?
 
-- 
+- Filtrar la lista de proyectos por la vacante "Diseñador UI" desde la pantalla de inicio.
 
-- 
+- Entrar al detalle del proyecto Unisports y completar el flujo de postulación a un equipo.
 
-- 
+- Iniciar y completar la publicación de una nueva iniciativa mediante el botón "Publicar Proyecto".
