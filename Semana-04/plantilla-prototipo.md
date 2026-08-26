@@ -100,9 +100,7 @@ Si usan algún apoyo adicional, indíquenlo aquí:
 
 ## Evidencia en Figma
 
-Peguen aquí el enlace al archivo o prototipo de Figma:
-
-**Enlace:**
+**Enlace:** https://www.figma.com/make/xrCZWssQIG2wqlgdx0j7I9/Prototipo-aplicaci%C3%B3n-universitaria?t=rZLtP0AkgICnVSUk-1
 
 ¿Qué puede recorrer o ver una persona dentro de ese prototipo?
 
