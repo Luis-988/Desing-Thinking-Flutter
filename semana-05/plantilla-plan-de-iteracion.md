@@ -43,3 +43,33 @@ Clasifiquen los cambios propuestos.
 - Implementar notificaciones por correo institucional Uninorte.
 
 ---
+
+## Decisión del equipo
+
+Después de validar, ¿qué decisión toman?
+
+- Mantener la estructura general y mejorar detalles.
+
+Expliquen brevemente por qué.
+Los resultados con los 8 usuarios demostraron que la integración de la navegación híbrida (Feed B + Postulación A + Registro A) responde eficientemente a la necesidad de conectar estudiantes. Los bloqueos fueron únicamente detalles de retroalimentación e información secundaria del perfil, no problemas estructurales de arquitectura de la información.
+
+---
+
+## Próximo paso
+
+¿Qué debería hacer el equipo en la siguiente iteración o etapa de desarrollo?
+
+- Elevar la fidelidad gráfica del prototipo en Figma incorporando el sistema de diseño visual de la propuesta.
+- Diseñar las pantallas de perfil de usuario y la bandeja de gestión de postulaciones recibidas.
+- Preparar los componentes interactivos finales para una prueba funcional previa a la implementación.
+
+---
+
+## Nivel de preparación para implementación
+
+Después de esta etapa, ¿cómo se encuentra el equipo?
+
+- Listo para pasar a una implementación inicial.
+
+Expliquen brevemente por qué.
+La estructura de la solución, los flujos principales y la arquitectura de navegación han sido validados dos veces consecutivas con usuarios reales. Las funcionalidades esenciales son claras, resuelven la problemática planteada y el equipo cuenta con la trazabilidad necesaria para construir la primera versión funcional sin incertidumbres sobre la experiencia de usuario.
