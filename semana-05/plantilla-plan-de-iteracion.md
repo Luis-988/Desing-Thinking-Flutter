@@ -2,9 +2,13 @@
 
 ## Información del equipo
 
-**Nombre del equipo:**
+*Nombre del equipo:* Sistema de Innovación Uninorte
 
-**Integrantes:**
+*Integrantes:*
+- Vanessa Orozco
+- Estefanía Paternina
+- Luis Robles
+- Daniel Castañeda
 
 ---
 
@@ -12,11 +16,9 @@
 
 ¿Qué aspectos del prototipo integrado necesitan ajuste inmediato después de esta nueva validación?
 
-1.
-
-2.
-
-3.
+1. Incorporar una vista emergente o sección corta con el perfil del estudiante líder de cada iniciativa.
+2. Añadir la funcionalidad visual de "Guardar en Favoritos" mediante un ícono de marcador en las tarjetas del feed.
+3. Clarificar la etiqueta del botón final en el flujo de publicación para indicar "Publicar directamente en el feed".
 
 ---
 
@@ -26,61 +28,18 @@ Clasifiquen los cambios propuestos.
 
 ### Cambios urgentes
 
-- 
-
-- 
-
-- 
+- Ajustar los textos explicativos dentro del Flujo 1 (Publicar) para especificar el destino del proyecto publicado.
+- Añadir micro-interacciones a los chips de filtro para soportar la selección múltiple de roles.
 
 ### Cambios importantes
 
-- 
-
-- 
-
-- 
+- Diseñar el componente modal con la información y contacto del líder del proyecto (Flujo 3).
+- Incluir la opción de guardar iniciativas en una lista personal de interés.
 
 ### Ideas para más adelante
 
-- 
-
-- 
-
-- 
+- Desarrollar un módulo de chat integrado para la comunicación entre miembros una vez aceptada la postulación.
+- Crear un panel de gestión para que el líder de proyecto pueda revisar y aceptar/rechazar los perfiles postulados.
+- Implementar notificaciones por correo institucional Uninorte.
 
 ---
-
-## Decisión del equipo
-
-Después de validar, ¿qué decisión toman?
-
-- Mantener la estructura general y mejorar detalles.
-- Ajustar algunos flujos importantes.
-- Replantear parte de la integración entre flujos.
-- Cambiar el enfoque del problema.
-
-Expliquen brevemente por qué.
-
----
-
-## Próximo paso
-
-¿Qué debería hacer el equipo en la siguiente iteración o etapa de desarrollo?
-
-- 
-
-- 
-
-- 
-
----
-
-## Nivel de preparación para implementación
-
-Después de esta etapa, ¿cómo se encuentra el equipo?
-
-- Listo para pasar a una implementación inicial.
-- Necesita una iteración más antes de implementar.
-- Debe replantear una parte importante de la propuesta.
-
-Expliquen brevemente por qué.
