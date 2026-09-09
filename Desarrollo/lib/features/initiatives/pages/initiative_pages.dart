@@ -85,6 +85,17 @@ class PublishInitiativePage extends StatefulWidget {
 
 class _PublishInitiativePageState extends State<PublishInitiativePage> {
   int step = 0;
+  final titleController = TextEditingController();
+  final categoryController = TextEditingController();
+  final roleController = TextEditingController();
+
+  @override
+  void dispose() {
+    titleController.dispose();
+    categoryController.dispose();
+    roleController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -96,9 +107,29 @@ class _PublishInitiativePageState extends State<PublishInitiativePage> {
           if (step < 2) {
             setState(() => step++);
           } else {
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('¡Iniciativa publicada!')),
+            final title = titleController.text.trim();
+            final category = categoryController.text.trim();
+            final role = roleController.text.trim();
+
+            if (title.isEmpty || category.isEmpty || role.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Completa todos los campos.')),
+              );
+              return;
+            }
+
+            Navigator.pop(
+              context,
+              Initiative(
+                id: DateTime.now().millisecondsSinceEpoch.toString(),
+                title: title,
+                category: category,
+                description: 'Nueva iniciativa publicada por ti.',
+                leader: 'Tú',
+                isFeatured: false,
+                isActive: true,
+                roles: [InitiativeRole(name: role, availablePlaces: 1)],
+              ),
             );
           }
         },
@@ -120,22 +151,25 @@ class _PublishInitiativePageState extends State<PublishInitiativePage> {
               ),
           ],
         ),
-        steps: const [
+        steps: [
           Step(
             title: Text('Información general'),
             content: TextField(
+              controller: titleController,
               decoration: InputDecoration(labelText: 'Nombre de la iniciativa'),
             ),
           ),
           Step(
             title: Text('Categoría'),
             content: TextField(
+              controller: categoryController,
               decoration: InputDecoration(labelText: 'Facultad o categoría'),
             ),
           ),
           Step(
             title: Text('Vacantes'),
             content: TextField(
+              controller: roleController,
               decoration: InputDecoration(labelText: 'Roles que buscas'),
             ),
           ),

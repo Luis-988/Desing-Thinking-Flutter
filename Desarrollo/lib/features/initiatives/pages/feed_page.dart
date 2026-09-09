@@ -16,6 +16,7 @@ class FeedPage extends StatefulWidget {
 class _FeedPageState extends State<FeedPage> {
   String selectedFilter = 'Todos';
   int selectedTab = 0;
+  final List<Initiative> myInitiatives = [];
 
   final filters = const [
     'Todos',
@@ -24,9 +25,14 @@ class _FeedPageState extends State<FeedPage> {
     'Ingeniería',
   ];
 
+  List<Initiative> get allInitiatives => [
+    ...widget.initiatives,
+    ...myInitiatives,
+  ];
+
   List<Initiative> get visibleInitiatives {
-    if (selectedFilter == 'Todos') return widget.initiatives;
-    return widget.initiatives.where((initiative) {
+    if (selectedFilter == 'Todos') return allInitiatives;
+    return allInitiatives.where((initiative) {
       return initiative.category == selectedFilter ||
           initiative.roles.any((role) => role.name == selectedFilter);
     }).toList();
@@ -83,12 +89,9 @@ class _FeedPageState extends State<FeedPage> {
       return _feedContent();
     }
 
+    if (selectedTab == 2) return _myInitiativesPage();
+
     final pages = [
-      (
-        'Mis iniciativas',
-        Icons.article_outlined,
-        'Aquí aparecerán las iniciativas que publiques.',
-      ),
       (
         'Guardados',
         Icons.bookmark_border,
@@ -96,7 +99,7 @@ class _FeedPageState extends State<FeedPage> {
       ),
       ('Perfil', Icons.person_outline, 'Tu perfil de innovación estará aquí.'),
     ];
-    final page = pages[selectedTab - 2];
+    final page = pages[selectedTab - 3];
 
     return Center(
       child: Padding(
@@ -119,6 +122,55 @@ class _FeedPageState extends State<FeedPage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _myInitiativesPage() {
+    return Column(
+      children: [
+        _header(),
+        Expanded(
+          child: myInitiatives.isEmpty
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Text(
+                      'Aquí aparecerán las iniciativas que publiques.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Color(0xFF6B7280)),
+                    ),
+                  ),
+                )
+              : ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+                  children: [
+                    const Text(
+                      'Mis iniciativas',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Iniciativas publicadas por ti',
+                      style: TextStyle(color: Color(0xFF6B7280), fontSize: 12),
+                    ),
+                    const SizedBox(height: 18),
+                    ...myInitiatives.map(
+                      (initiative) => Padding(
+                        padding: const EdgeInsets.only(bottom: 14),
+                        child: _initiativeCard(
+                          context,
+                          initiative,
+                          onDelete: () => _deleteInitiative(initiative),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+      ],
     );
   }
 
@@ -195,10 +247,15 @@ class _FeedPageState extends State<FeedPage> {
         ),
       ),
       ElevatedButton.icon(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const PublishInitiativePage()),
-        ),
+        onPressed: () async {
+          final initiative = await Navigator.push<Initiative>(
+            context,
+            MaterialPageRoute(builder: (_) => const PublishInitiativePage()),
+          );
+          if (initiative != null && mounted) {
+            setState(() => myInitiatives.add(initiative));
+          }
+        },
         icon: const Icon(Icons.add, size: 17),
         label: const Text('Publicar'),
         style: ElevatedButton.styleFrom(
@@ -236,7 +293,11 @@ class _FeedPageState extends State<FeedPage> {
     ),
   );
 
-  Widget _initiativeCard(BuildContext context, Initiative initiative) => Card(
+  Widget _initiativeCard(
+    BuildContext context,
+    Initiative initiative, {
+    VoidCallback? onDelete,
+  }) => Card(
     elevation: 0,
     margin: EdgeInsets.zero,
     color: Colors.white,
@@ -254,6 +315,14 @@ class _FeedPageState extends State<FeedPage> {
               if (initiative.isFeatured)
                 _tag('DESTACADA', const Color(0xFFE8530A), Colors.white),
               const Spacer(),
+              if (onDelete != null)
+                IconButton(
+                  onPressed: onDelete,
+                  tooltip: 'Eliminar iniciativa',
+                  icon: const Icon(Icons.delete_outline),
+                  color: const Color(0xFFB42318),
+                  visualDensity: VisualDensity.compact,
+                ),
               const Icon(Icons.bookmark_border, color: AppTheme.navy, size: 20),
             ],
           ),
@@ -370,4 +439,35 @@ class _FeedPageState extends State<FeedPage> {
     ),
     child: Text(text, style: TextStyle(color: foreground, fontSize: 10)),
   );
+
+  Future<void> _deleteInitiative(Initiative initiative) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Eliminar iniciativa'),
+        content: Text('¿Quieres eliminar "${initiative.title}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFB42318),
+            ),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete == true && mounted) {
+      setState(
+        () => myInitiatives.removeWhere((item) => item.id == initiative.id),
+      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Iniciativa eliminada.')));
+    }
+  }
 }
