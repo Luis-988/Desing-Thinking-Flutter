@@ -18,6 +18,9 @@ La plataforma deberá permitir que los estudiantes puedan:
 
 El objetivo no es solamente construir una aplicación móvil, sino asegurarse de que la aplicación responda a necesidades reales de sus usuarios.
 
+## Enlace de FIGMA:
+https://www.figma.com/make/xrCZWssQIG2wqlgdx0j7I9/Prototipo-aplicaci%C3%B3n-universitaria?t=HB7VkiRi0UUWuHQj-1
+
 ## Metodología
 
 El proyecto seguirá las fases de Design Thinking:
