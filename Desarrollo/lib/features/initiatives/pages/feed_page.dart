@@ -312,8 +312,8 @@ class _FeedPageState extends State<FeedPage> {
         children: [
           Row(
             children: [
-              if (initiative.isFeatured)
-                _tag('DESTACADA', const Color(0xFFE8530A), Colors.white),
+              if (initiative.isPopular)
+                _tag('POPULAR', const Color(0xFFE8530A), Colors.white),
               const Spacer(),
               if (onDelete != null)
                 IconButton(
@@ -321,6 +321,23 @@ class _FeedPageState extends State<FeedPage> {
                   tooltip: 'Eliminar iniciativa',
                   icon: const Icon(Icons.delete_outline),
                   color: const Color(0xFFB42318),
+                  visualDensity: VisualDensity.compact,
+                ),
+              if (onDelete != null)
+                IconButton(
+                  onPressed: () => setState(
+                    () => initiative.isPopularManually =
+                        !initiative.isPopularManually,
+                  ),
+                  tooltip: initiative.isPopularManually
+                      ? 'Quitar marca de popular'
+                      : 'Marcar como popular',
+                  icon: Icon(
+                    initiative.isPopularManually
+                        ? Icons.star
+                        : Icons.star_border,
+                  ),
+                  color: const Color(0xFFE8530A),
                   visualDensity: VisualDensity.compact,
                 ),
               const Icon(Icons.bookmark_border, color: AppTheme.navy, size: 20),
@@ -358,6 +375,11 @@ class _FeedPageState extends State<FeedPage> {
             ),
           ),
           const SizedBox(height: 12),
+          Text(
+            '${initiative.views} ${initiative.views == 1 ? 'visita' : 'visitas'}',
+            style: const TextStyle(color: Color(0xFF6B7280), fontSize: 11),
+          ),
+          const SizedBox(height: 10),
           const Text(
             'ROLES DISPONIBLES',
             style: TextStyle(
@@ -395,13 +417,16 @@ class _FeedPageState extends State<FeedPage> {
             children: [
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          InitiativeDetailPage(initiative: initiative),
-                    ),
-                  ),
+                  onPressed: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            InitiativeDetailPage(initiative: initiative),
+                      ),
+                    );
+                    if (mounted) setState(() {});
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.navy,
                     foregroundColor: Colors.white,

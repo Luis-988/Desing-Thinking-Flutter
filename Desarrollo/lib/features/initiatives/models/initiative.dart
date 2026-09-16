@@ -4,20 +4,29 @@ class Initiative {
   final String category;
   final String description;
   final String leader;
-  final bool isFeatured;
+  bool isPopularManually;
   final bool isActive;
   final List<InitiativeRole> roles;
+  int views;
 
-  const Initiative({
+  static const int automaticPopularityThreshold = 10;
+
+  bool get isPopular =>
+      isPopularManually || views >= automaticPopularityThreshold;
+
+  Initiative({
     required this.id,
     required this.title,
     required this.category,
     required this.description,
     required this.leader,
-    required this.isFeatured,
+    required this.isPopularManually,
     required this.isActive,
     required this.roles,
+    this.views = 0,
   });
+
+  void registerView() => views++;
 }
 
 class InitiativeRole {

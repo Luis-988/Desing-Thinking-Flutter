@@ -3,10 +3,21 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../models/initiative.dart';
 
-class InitiativeDetailPage extends StatelessWidget {
+class InitiativeDetailPage extends StatefulWidget {
   final Initiative initiative;
 
   const InitiativeDetailPage({super.key, required this.initiative});
+
+  @override
+  State<InitiativeDetailPage> createState() => _InitiativeDetailPageState();
+}
+
+class _InitiativeDetailPageState extends State<InitiativeDetailPage> {
+  @override
+  void initState() {
+    super.initState();
+    widget.initiative.registerView();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,21 +27,26 @@ class InitiativeDetailPage extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         children: [
           Text(
-            initiative.title,
+            widget.initiative.title,
             style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           Text(
-            '${initiative.category} • Liderado por ${initiative.leader}',
+            '${widget.initiative.category} • Liderado por ${widget.initiative.leader}',
             style: const TextStyle(color: Color(0xFF6B7280)),
           ),
+          const SizedBox(height: 6),
+          Text(
+            '${widget.initiative.views} visitas',
+            style: const TextStyle(color: Color(0xFF6B7280), fontSize: 12),
+          ),
           const SizedBox(height: 20),
-          Text(initiative.description),
+          Text(widget.initiative.description),
           const SizedBox(height: 20),
           const Text(
             'Vacantes disponibles',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
-          ...initiative.roles.map(
+          ...widget.initiative.roles.map(
             (role) => ListTile(
               title: Text(role.name),
               subtitle: Text('${role.availablePlaces} plazas disponibles'),
@@ -85,6 +101,7 @@ class PublishInitiativePage extends StatefulWidget {
 
 class _PublishInitiativePageState extends State<PublishInitiativePage> {
   int step = 0;
+  bool isPopularManually = false;
   final titleController = TextEditingController();
   final categoryController = TextEditingController();
   final roleController = TextEditingController();
@@ -126,7 +143,7 @@ class _PublishInitiativePageState extends State<PublishInitiativePage> {
                 category: category,
                 description: 'Nueva iniciativa publicada por ti.',
                 leader: 'Tú',
-                isFeatured: false,
+                isPopularManually: isPopularManually,
                 isActive: true,
                 roles: [InitiativeRole(name: role, availablePlaces: 1)],
               ),
@@ -161,9 +178,23 @@ class _PublishInitiativePageState extends State<PublishInitiativePage> {
           ),
           Step(
             title: Text('Categoría'),
-            content: TextField(
-              controller: categoryController,
-              decoration: InputDecoration(labelText: 'Facultad o categoría'),
+            content: Column(
+              children: [
+                TextField(
+                  controller: categoryController,
+                  decoration: InputDecoration(
+                    labelText: 'Facultad o categoría',
+                  ),
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('Marcar como popular'),
+                  subtitle: Text('También podrás cambiarlo después.'),
+                  value: isPopularManually,
+                  onChanged: (value) =>
+                      setState(() => isPopularManually = value),
+                ),
+              ],
             ),
           ),
           Step(
