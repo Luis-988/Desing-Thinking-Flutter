@@ -35,3 +35,23 @@ class InitiativeRole {
 
   const InitiativeRole({required this.name, required this.availablePlaces});
 }
+
+enum ApplicationStatus { pending, accepted, rejected }
+
+class InitiativeApplication {
+  final String id;
+  final String initiativeId;
+  final String applicantName;
+  final String roleName;
+  final String message;
+  ApplicationStatus status;
+
+  InitiativeApplication({
+    required this.id,
+    required this.initiativeId,
+    required this.applicantName,
+    required this.roleName,
+    required this.message,
+    this.status = ApplicationStatus.pending,
+  });
+}

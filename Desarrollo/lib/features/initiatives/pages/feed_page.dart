@@ -17,6 +17,7 @@ class _FeedPageState extends State<FeedPage> {
   String selectedFilter = 'Todos';
   int selectedTab = 0;
   final List<Initiative> myInitiatives = [];
+  final List<InitiativeApplication> applications = [];
 
   final filters = const [
     'Todos',
@@ -157,6 +158,8 @@ class _FeedPageState extends State<FeedPage> {
                       style: TextStyle(color: Color(0xFF6B7280), fontSize: 12),
                     ),
                     const SizedBox(height: 18),
+                    _applicationsSection(),
+                    const SizedBox(height: 18),
                     ...myInitiatives.map(
                       (initiative) => Padding(
                         padding: const EdgeInsets.only(bottom: 14),
@@ -196,6 +199,130 @@ class _FeedPageState extends State<FeedPage> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _applicationsSection() {
+    if (applications.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Postulaciones recibidas',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            _tag('${applications.length}', AppTheme.navy, Colors.white),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ...applications.map(_applicationCard),
+      ],
+    );
+  }
+
+  Widget _applicationCard(InitiativeApplication application) {
+    final initiative = allInitiatives.firstWhere(
+      (item) => item.id == application.initiativeId,
+    );
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 10),
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    application.applicantName,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                _tag('MATCH', const Color(0xFFE8D9FF), const Color(0xFF7C3AED)),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text('${application.roleName} · ${initiative.title}'),
+            const SizedBox(height: 8),
+            Text(
+              application.message,
+              style: const TextStyle(color: Color(0xFF4B5563), fontSize: 13),
+            ),
+            const SizedBox(height: 10),
+            if (application.status == ApplicationStatus.pending)
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _updateApplication(
+                        application,
+                        ApplicationStatus.rejected,
+                      ),
+                      icon: const Icon(Icons.close, size: 17),
+                      label: const Text('Rechazar'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFB42318),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: () => _updateApplication(
+                        application,
+                        ApplicationStatus.accepted,
+                      ),
+                      icon: const Icon(Icons.check, size: 17),
+                      label: const Text('Aceptar'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppTheme.navy,
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            else
+              Align(
+                alignment: Alignment.centerLeft,
+                child: _tag(
+                  application.status == ApplicationStatus.accepted
+                      ? 'MATCH ACEPTADO'
+                      : 'POSTULACIÓN RECHAZADA',
+                  application.status == ApplicationStatus.accepted
+                      ? const Color(0xFFD9F8E7)
+                      : const Color(0xFFFDE2E1),
+                  application.status == ApplicationStatus.accepted
+                      ? const Color(0xFF0C8A4B)
+                      : const Color(0xFFB42318),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _updateApplication(
+    InitiativeApplication application,
+    ApplicationStatus status,
+  ) {
+    setState(() => application.status = status);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          status == ApplicationStatus.accepted
+              ? 'Postulación aceptada. ¡Hicieron match!'
+              : 'Postulación rechazada.',
+        ),
+      ),
     );
   }
 
@@ -421,8 +548,15 @@ class _FeedPageState extends State<FeedPage> {
                     await Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) =>
-                            InitiativeDetailPage(initiative: initiative),
+                        builder: (_) => InitiativeDetailPage(
+                          initiative: initiative,
+                          applications: applications
+                              .where((item) => item.initiativeId == initiative.id)
+                              .toList(),
+                          onApplicationSubmitted: (application) => setState(
+                            () => applications.add(application),
+                          ),
+                        ),
                       ),
                     );
                     if (mounted) setState(() {});
@@ -437,11 +571,23 @@ class _FeedPageState extends State<FeedPage> {
               const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Selecciona un rol para postularte.'),
-                    ),
-                  ),
+                  onPressed: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => InitiativeDetailPage(
+                          initiative: initiative,
+                          applications: applications
+                              .where((item) => item.initiativeId == initiative.id)
+                              .toList(),
+                          onApplicationSubmitted: (application) => setState(
+                            () => applications.add(application),
+                          ),
+                        ),
+                      ),
+                    );
+                    if (mounted) setState(() {});
+                  },
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppTheme.navy,
                     side: const BorderSide(color: AppTheme.navy),

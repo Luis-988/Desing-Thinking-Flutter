@@ -5,8 +5,15 @@ import '../models/initiative.dart';
 
 class InitiativeDetailPage extends StatefulWidget {
   final Initiative initiative;
+  final List<InitiativeApplication> applications;
+  final ValueChanged<InitiativeApplication> onApplicationSubmitted;
 
-  const InitiativeDetailPage({super.key, required this.initiative});
+  const InitiativeDetailPage({
+    super.key,
+    required this.initiative,
+    this.applications = const [],
+    required this.onApplicationSubmitted,
+  });
 
   @override
   State<InitiativeDetailPage> createState() => _InitiativeDetailPageState();
@@ -50,10 +57,7 @@ class _InitiativeDetailPageState extends State<InitiativeDetailPage> {
             (role) => ListTile(
               title: Text(role.name),
               subtitle: Text('${role.availablePlaces} plazas disponibles'),
-              trailing: ElevatedButton(
-                onPressed: () => _apply(context, role.name),
-                child: const Text('Postular'),
-              ),
+              trailing: _roleAction(role.name),
             ),
           ),
         ],
@@ -61,23 +65,66 @@ class _InitiativeDetailPageState extends State<InitiativeDetailPage> {
     );
   }
 
+  Widget _roleAction(String roleName) {
+    final application = widget.applications
+        .where((item) => item.roleName == roleName)
+        .firstOrNull;
+    if (application == null) {
+      return ElevatedButton(
+        onPressed: () => _apply(context, roleName),
+        child: const Text('Postular'),
+      );
+    }
+    return Chip(
+      label: Text(_statusLabel(application.status)),
+      backgroundColor: _statusColor(application.status),
+    );
+  }
+
+  String _statusLabel(ApplicationStatus status) => switch (status) {
+    ApplicationStatus.pending => 'Pendiente',
+    ApplicationStatus.accepted => 'Aceptada',
+    ApplicationStatus.rejected => 'Rechazada',
+  };
+
+  Color _statusColor(ApplicationStatus status) => switch (status) {
+    ApplicationStatus.pending => const Color(0xFFFFF1CC),
+    ApplicationStatus.accepted => const Color(0xFFD9F8E7),
+    ApplicationStatus.rejected => const Color(0xFFFDE2E1),
+  };
+
   void _apply(BuildContext context, String role) {
+    final messageController = TextEditingController();
     showDialog<void>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text('Postularme como $role'),
-        content: const TextField(
+        content: TextField(
+          controller: messageController,
           maxLines: 3,
-          decoration: InputDecoration(hintText: 'Escribe un mensaje breve'),
+          decoration: const InputDecoration(
+            hintText: 'Cuéntale al líder por qué haces match con este rol',
+          ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context);
+              widget.onApplicationSubmitted(
+                InitiativeApplication(
+                  id: DateTime.now().microsecondsSinceEpoch.toString(),
+                  initiativeId: widget.initiative.id,
+                  applicantName: 'Tú',
+                  roleName: role,
+                  message: messageController.text.trim().isEmpty
+                      ? 'Me interesa aportar a esta iniciativa.'
+                      : messageController.text.trim(),
+                ),
+              );
+              Navigator.pop(dialogContext);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('¡Postulación enviada con éxito!'),
@@ -103,14 +150,32 @@ class _PublishInitiativePageState extends State<PublishInitiativePage> {
   int step = 0;
   bool isPopularManually = false;
   final titleController = TextEditingController();
-  final categoryController = TextEditingController();
-  final roleController = TextEditingController();
+  String? selectedCategory;
+  String? selectedRole;
+
+  final List<String> categories = const [
+    'Ingeniería',
+    'Diseño',
+    'Sostenibilidad',
+    'Salud',
+    'Tecnología',
+    'Educación',
+    'Negocios',
+  ];
+
+  final List<String> roles = const [
+    'Diseñador UX/UI',
+    'Desarrollador Frontend',
+    'Desarrollador Backend',
+    'Marketing',
+    'Investigador',
+    'Product Manager',
+    'Data Analyst',
+  ];
 
   @override
   void dispose() {
     titleController.dispose();
-    categoryController.dispose();
-    roleController.dispose();
     super.dispose();
   }
 
@@ -125,10 +190,8 @@ class _PublishInitiativePageState extends State<PublishInitiativePage> {
             setState(() => step++);
           } else {
             final title = titleController.text.trim();
-            final category = categoryController.text.trim();
-            final role = roleController.text.trim();
 
-            if (title.isEmpty || category.isEmpty || role.isEmpty) {
+            if (title.isEmpty || selectedCategory == null || selectedRole == null) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Completa todos los campos.')),
               );
@@ -140,12 +203,12 @@ class _PublishInitiativePageState extends State<PublishInitiativePage> {
               Initiative(
                 id: DateTime.now().millisecondsSinceEpoch.toString(),
                 title: title,
-                category: category,
+                category: selectedCategory!,
                 description: 'Nueva iniciativa publicada por ti.',
                 leader: 'Tú',
                 isPopularManually: isPopularManually,
                 isActive: true,
-                roles: [InitiativeRole(name: role, availablePlaces: 1)],
+                roles: [InitiativeRole(name: selectedRole!, availablePlaces: 1)],
               ),
             );
           }
@@ -180,11 +243,22 @@ class _PublishInitiativePageState extends State<PublishInitiativePage> {
             title: Text('Categoría'),
             content: Column(
               children: [
-                TextField(
-                  controller: categoryController,
-                  decoration: InputDecoration(
+                DropdownButtonFormField<String>(
+                  initialValue: selectedCategory,
+                  decoration: const InputDecoration(
                     labelText: 'Facultad o categoría',
+                    border: OutlineInputBorder(),
                   ),
+                  items: categories
+                      .map(
+                        (category) => DropdownMenuItem(
+                          value: category,
+                          child: Text(category),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) => setState(() => selectedCategory = value),
+                  hint: const Text('Selecciona una categoría'),
                 ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
@@ -199,9 +273,22 @@ class _PublishInitiativePageState extends State<PublishInitiativePage> {
           ),
           Step(
             title: Text('Vacantes'),
-            content: TextField(
-              controller: roleController,
-              decoration: InputDecoration(labelText: 'Roles que buscas'),
+            content: DropdownButtonFormField<String>(
+              initialValue: selectedRole,
+              decoration: const InputDecoration(
+                labelText: 'Rol que buscas',
+                border: OutlineInputBorder(),
+              ),
+              items: roles
+                  .map(
+                    (role) => DropdownMenuItem(
+                      value: role,
+                      child: Text(role),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) => setState(() => selectedRole = value),
+              hint: const Text('Selecciona un rol'),
             ),
           ),
         ],
