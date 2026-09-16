@@ -14,8 +14,8 @@ void main() {
     await tester.pumpWidget(const UninorteInnovacionApp());
 
     expect(find.text('Sistema de Innovación'), findsOneWidget);
-    expect(find.text('Explora iniciativas'), findsOneWidget);
+    expect(find.text('Explora proyectos'), findsOneWidget);
     expect(find.text('Unisports'), findsOneWidget);
-    expect(find.text('Publicar'), findsOneWidget);
+    expect(find.text('Publicar proyecto'), findsOneWidget);
   });
 }
