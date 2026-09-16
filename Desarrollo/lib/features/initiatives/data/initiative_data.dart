@@ -1,13 +1,13 @@
 import '../models/initiative.dart';
 
-const localInitiatives = <Initiative>[
+final localInitiatives = <Initiative>[
   Initiative(
     id: 'unisports',
     title: 'Unisports',
     category: 'Ingeniería',
     description: 'Plataforma para conectar estudiantes mediante actividades deportivas y proyectos relacionados con el deporte universitario.',
     leader: 'Equipo Uninorte',
-    isFeatured: true,
+    isPopularManually: false,
     isActive: true,
     roles: [
       InitiativeRole(name: 'Diseñador UX/UI', availablePlaces: 1),
@@ -21,7 +21,7 @@ const localInitiatives = <Initiative>[
     category: 'Sostenibilidad',
     description: 'Sistema de reciclaje e incentivos dinámicos dentro de la universidad mediante código QR.',
     leader: 'Equipo Uninorte',
-    isFeatured: true,
+    isPopularManually: false,
     isActive: true,
     roles: [InitiativeRole(name: 'Desarrollador Frontend', availablePlaces: 2)],
   ),
