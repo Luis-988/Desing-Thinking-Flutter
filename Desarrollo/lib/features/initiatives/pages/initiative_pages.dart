@@ -67,7 +67,9 @@ class _InitiativeDetailPageState extends State<InitiativeDetailPage> {
 
   Widget _roleAction(String roleName) {
     final application = widget.applications
-        .where((item) => item.roleName == roleName && item.applicantName == 'Tú')
+        .where(
+          (item) => item.roleName == roleName && item.applicantName == 'Tú',
+        )
         .firstOrNull;
     if (application == null) {
       return ElevatedButton(
@@ -97,10 +99,8 @@ class _InitiativeDetailPageState extends State<InitiativeDetailPage> {
     Navigator.push<InitiativeApplication>(
       context,
       MaterialPageRoute(
-        builder: (_) => ApplyInitiativePage(
-          initiative: widget.initiative,
-          roleName: role,
-        ),
+        builder: (_) =>
+            ApplyInitiativePage(initiative: widget.initiative, roleName: role),
       ),
     ).then((application) {
       if (application != null && mounted) {
@@ -155,7 +155,9 @@ class _ApplyInitiativePageState extends State<ApplyInitiativePage> {
   void _reviewApplication() {
     if (!_hasCompleteProfile()) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Completa todos los datos para continuar.')),
+        const SnackBar(
+          content: Text('Completa todos los datos para continuar.'),
+        ),
       );
       return;
     }
@@ -199,7 +201,9 @@ class _ApplyInitiativePageState extends State<ApplyInitiativePage> {
                       Navigator.pop(sheetContext);
                       Navigator.pop(context, _buildApplication());
                     },
-                    style: FilledButton.styleFrom(backgroundColor: AppTheme.navy),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppTheme.navy,
+                    ),
                     child: const Text('Enviar postulación'),
                   ),
                 ),
@@ -242,10 +246,20 @@ class _ApplyInitiativePageState extends State<ApplyInitiativePage> {
     children: [
       SizedBox(
         width: 82,
-        child: Text(label, style: const TextStyle(color: Color(0xFF4B5563), fontSize: 13)),
+        child: Text(
+          label,
+          style: const TextStyle(color: Color(0xFF4B5563), fontSize: 13),
+        ),
       ),
       Expanded(
-        child: Text(value, style: const TextStyle(color: AppTheme.navy, fontWeight: FontWeight.w600, fontSize: 13)),
+        child: Text(
+          value,
+          style: const TextStyle(
+            color: AppTheme.navy,
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
+        ),
       ),
     ],
   );
@@ -259,7 +273,11 @@ class _ApplyInitiativePageState extends State<ApplyInitiativePage> {
         children: [
           Text(
             'Postularme a ${widget.roleName}',
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF172033)),
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF172033),
+            ),
           ),
           const SizedBox(height: 5),
           const Text(
@@ -271,9 +289,17 @@ class _ApplyInitiativePageState extends State<ApplyInitiativePage> {
           const SizedBox(height: 24),
           _sectionLabel('TU PERFIL'),
           _field(nameController, 'Nombre completo', 'Ej. Laura Castillo'),
-          _field(programController, 'Programa académico', 'Ej. Diseño Industrial'),
+          _field(
+            programController,
+            'Programa académico',
+            'Ej. Diseño Industrial',
+          ),
           _field(semesterController, 'Semestre', 'Ej. 6to semestre'),
-          _field(skillsController, 'Habilidades relevantes', 'Ej. Figma, UX Research, Prototipado'),
+          _field(
+            skillsController,
+            'Habilidades relevantes',
+            'Ej. Figma, UX Research, Prototipado',
+          ),
           const SizedBox(height: 12),
           _sectionLabel('MENSAJE PARA EL LÍDER'),
           TextField(
@@ -314,13 +340,14 @@ class _ApplyInitiativePageState extends State<ApplyInitiativePage> {
     ),
   );
 
-  Widget _field(TextEditingController controller, String label, String hint) => Padding(
-    padding: const EdgeInsets.only(bottom: 12),
-    child: TextField(
-      controller: controller,
-      decoration: InputDecoration(labelText: label, hintText: hint),
-    ),
-  );
+  Widget _field(TextEditingController controller, String label, String hint) =>
+      Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: TextField(
+          controller: controller,
+          decoration: InputDecoration(labelText: label, hintText: hint),
+        ),
+      );
 }
 
 class PublishInitiativePage extends StatefulWidget {
@@ -380,7 +407,11 @@ class _PublishInitiativePageState extends State<PublishInitiativePage> {
     final roleDescription = roleDescriptionController.text.trim();
     if (selectedRole == null || roleDescription.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selecciona una vacante y describe lo que se requiere.')),
+        const SnackBar(
+          content: Text(
+            'Selecciona una vacante y describe lo que se requiere.',
+          ),
+        ),
       );
       return;
     }
@@ -409,7 +440,9 @@ class _PublishInitiativePageState extends State<PublishInitiativePage> {
       }
       if (descriptionController.text.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Escribe una descripción del proyecto.')),
+          const SnackBar(
+            content: Text('Escribe una descripción del proyecto.'),
+          ),
         );
         return false;
       }
@@ -423,7 +456,8 @@ class _PublishInitiativePageState extends State<PublishInitiativePage> {
     }
 
     if (step == 2) {
-      if (selectedRole != null || roleDescriptionController.text.trim().isNotEmpty) {
+      if (selectedRole != null ||
+          roleDescriptionController.text.trim().isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Presiona + para agregar la vacante.')),
         );
@@ -445,7 +479,9 @@ class _PublishInitiativePageState extends State<PublishInitiativePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.initiative == null ? 'Publicar nuevo proyecto' : 'Editar proyecto',
+          widget.initiative == null
+              ? 'Publicar nuevo proyecto'
+              : 'Editar proyecto',
         ),
       ),
       body: Stepper(
@@ -471,11 +507,11 @@ class _PublishInitiativePageState extends State<PublishInitiativePage> {
                       roles: List.of(selectedRoles),
                     )
                   : (widget.initiative!
-                    ..title = title
-                    ..categories = List.of(selectedCategories)
-                    ..description = descriptionController.text.trim()
-                    ..roles = List.of(selectedRoles)
-                    ..isPopularManually = isPopularManually),
+                      ..title = title
+                      ..categories = List.of(selectedCategories)
+                      ..description = descriptionController.text.trim()
+                      ..roles = List.of(selectedRoles)
+                      ..isPopularManually = isPopularManually),
             );
           }
         },
@@ -504,7 +540,9 @@ class _PublishInitiativePageState extends State<PublishInitiativePage> {
               children: [
                 TextField(
                   controller: titleController,
-                  decoration: const InputDecoration(labelText: 'Nombre del proyecto'),
+                  decoration: const InputDecoration(
+                    labelText: 'Nombre del proyecto',
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -523,12 +561,15 @@ class _PublishInitiativePageState extends State<PublishInitiativePage> {
             content: Column(
               children: [
                 DropdownButtonFormField<String>(
+                  key: ValueKey(selectedCategories.join('|')),
                   decoration: const InputDecoration(
                     labelText: 'Agregar categoría',
                     border: OutlineInputBorder(),
                   ),
-                    items: categories
-                      .where((category) => !selectedCategories.contains(category))
+                  items: categories
+                      .where(
+                        (category) => !selectedCategories.contains(category),
+                      )
                       .map(
                         (category) => DropdownMenuItem(
                           value: category,
@@ -585,24 +626,26 @@ class _PublishInitiativePageState extends State<PublishInitiativePage> {
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         initialValue: selectedRole,
-                        decoration: const InputDecoration(
-                          labelText: 'Vacante',
-                        ),
-                        items: const [
-                          'Diseñador UX/UI',
-                          'Desarrollador Frontend',
-                          'Desarrollador Backend',
-                          'Marketing',
-                          'Investigador',
-                          'Product Manager',
-                          'Data Analyst',
-                        ].map(
-                          (role) => DropdownMenuItem(
-                            value: role,
-                            child: Text(role),
-                          ),
-                        ).toList(),
-                        onChanged: (value) => setState(() => selectedRole = value),
+                        decoration: const InputDecoration(labelText: 'Vacante'),
+                        items:
+                            const [
+                                  'Diseñador UX/UI',
+                                  'Desarrollador Frontend',
+                                  'Desarrollador Backend',
+                                  'Marketing',
+                                  'Investigador',
+                                  'Product Manager',
+                                  'Data Analyst',
+                                ]
+                                .map(
+                                  (role) => DropdownMenuItem(
+                                    value: role,
+                                    child: Text(role),
+                                  ),
+                                )
+                                .toList(),
+                        onChanged: (value) =>
+                            setState(() => selectedRole = value),
                         hint: const Text('Selecciona'),
                       ),
                     ),
@@ -630,7 +673,8 @@ class _PublishInitiativePageState extends State<PublishInitiativePage> {
                     title: Text(role.name),
                     subtitle: Text(role.description),
                     trailing: IconButton(
-                      onPressed: () => setState(() => selectedRoles.remove(role)),
+                      onPressed: () =>
+                          setState(() => selectedRoles.remove(role)),
                       tooltip: 'Quitar vacante',
                       icon: const Icon(Icons.delete_outline),
                     ),
