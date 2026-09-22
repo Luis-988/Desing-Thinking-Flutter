@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../models/initiative.dart';
+import '../../profile/pages/profile_page.dart';
 import 'initiative_pages.dart';
 
 class FeedPage extends StatefulWidget {
@@ -18,6 +19,8 @@ class _FeedPageState extends State<FeedPage> {
   int selectedTab = 0;
   final List<Initiative> myInitiatives = [];
   final Set<String> savedInitiativeIds = {};
+  ProfileUser? currentUser;
+  ProfileUser? registeredUser;
   final List<InitiativeApplication> applications = [
     InitiativeApplication(
       id: 'received-laura',
@@ -74,12 +77,6 @@ class _FeedPageState extends State<FeedPage> {
     }).toList();
   }
 
-  int _applicationCountFor(Initiative initiative) {
-    return applications
-        .where((application) => application.initiativeId == initiative.id)
-        .length;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -134,33 +131,57 @@ class _FeedPageState extends State<FeedPage> {
     if (selectedTab == 2) return _myInitiativesPage();
     if (selectedTab == 3) return _savedPage();
 
-    final pages = [
-      ('Perfil', Icons.person_outline, 'Tu perfil de innovación estará aquí.'),
-    ];
-    final page = pages[selectedTab - 4];
+    return ProfilePage(
+      user: currentUser,
+      onLogin: () => _openAuth(false),
+      onRegister: () => _openAuth(true),
+      onLogout: () => setState(() => currentUser = null),
+    );
+  }
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(page.$2, size: 52, color: AppTheme.navy),
-            const SizedBox(height: 16),
-            Text(
-              page.$1,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              page.$3,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Color(0xFF6B7280)),
-            ),
-          ],
+  Future<void> _openAuth(bool startInRegisterMode) async {
+    final user = await Navigator.push<ProfileUser>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AuthPage(
+          startInRegisterMode: startInRegisterMode,
+          onSubmit: _authenticate,
         ),
       ),
     );
+    if (user != null && mounted) setState(() => currentUser = user);
+  }
+
+  Future<AuthResult> _authenticate({
+    required bool isRegistering,
+    required String name,
+    required String email,
+    required String program,
+    required String semester,
+    required String password,
+  }) async {
+    if (isRegistering) {
+      if (registeredUser != null) {
+        return const AuthResult.failure(
+          'Ya existe una cuenta en esta sesión. Inicia sesión para continuar.',
+        );
+      }
+      final user = ProfileUser(
+        name: name,
+        email: email,
+        program: program,
+        semester: semester,
+        password: password,
+      );
+      registeredUser = user;
+      return AuthResult.success(user);
+    }
+
+    final user = registeredUser;
+    if (user == null || user.email != email || user.password != password) {
+      return const AuthResult.failure('El correo o la contraseña no son correctos.');
+    }
+    return AuthResult.success(user);
   }
 
   Widget _savedPage() {
@@ -666,7 +687,7 @@ class _FeedPageState extends State<FeedPage> {
         children: [
           Row(
             children: [
-              if (_applicationCountFor(initiative) > 3)
+              if (initiative.isPopular)
                 _tag('MÁS POPULAR', const Color(0xFFE8530A), Colors.white),
               const Spacer(),
               if (onDelete != null)
