@@ -68,7 +68,9 @@ class _InitiativeDetailPageState extends State<InitiativeDetailPage> {
   Widget _roleAction(String roleName) {
     final application = widget.applications
         .where(
-          (item) => item.roleName == roleName && item.applicantName == 'Tú',
+          (item) =>
+              item.roleName == roleName &&
+              (item.isMine || item.applicantName == 'Tú'),
         )
         .firstOrNull;
     if (application == null) {
@@ -352,8 +354,13 @@ class _ApplyInitiativePageState extends State<ApplyInitiativePage> {
 
 class PublishInitiativePage extends StatefulWidget {
   final Initiative? initiative;
+  final String leaderName;
 
-  const PublishInitiativePage({super.key, this.initiative});
+  const PublishInitiativePage({
+    super.key,
+    this.initiative,
+    this.leaderName = 'Tú',
+  });
 
   @override
   State<PublishInitiativePage> createState() => _PublishInitiativePageState();
@@ -501,7 +508,7 @@ class _PublishInitiativePageState extends State<PublishInitiativePage> {
                       title: title,
                       categories: List.of(selectedCategories),
                       description: descriptionController.text.trim(),
-                      leader: 'Tú',
+                      leader: widget.leaderName,
                       isPopularManually: isPopularManually,
                       isActive: true,
                       roles: List.of(selectedRoles),
