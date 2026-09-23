@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_theme.dart';
-import '../models/initiative.dart';
-import '../../profile/data/auth_repository.dart';
-import '../../profile/pages/profile_page.dart';
-import '../data/initiative_repository.dart';
-import 'initiative_pages.dart';
+import '../../../../core/di/injection.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../auth/domain/entities/auth_result.dart';
+import '../../../auth/domain/entities/profile_user.dart';
+import '../../../auth/presentation/pages/auth_page.dart';
+import '../../../auth/presentation/pages/profile_page.dart';
+import '../../domain/entities/initiative.dart';
+import '../../domain/entities/initiative_application.dart';
+import 'initiative_detail_page.dart';
+import 'publish_initiative_page.dart';
 
 class FeedPage extends StatefulWidget {
   final ProfileUser? initialUser;
@@ -19,8 +23,6 @@ class FeedPage extends StatefulWidget {
 class _FeedPageState extends State<FeedPage> {
   String selectedFilter = 'Todos';
   int selectedTab = 0;
-  final _initiativeRepository = InitiativeRepository();
-  final _authRepository = AuthRepository();
   List<Initiative> initiatives = [];
   final Set<String> savedInitiativeIds = {};
   ProfileUser? currentUser;
@@ -44,8 +46,8 @@ class _FeedPageState extends State<FeedPage> {
       loadError = null;
     });
     try {
-      final loadedInitiatives = await _initiativeRepository.fetchInitiatives();
-      final loadedApplications = await _initiativeRepository.fetchApplications();
+      final loadedInitiatives = await Injection.getInitiatives();
+      final loadedApplications = await Injection.getApplications();
       if (!mounted) return;
       setState(() {
         initiatives = loadedInitiatives;
@@ -85,7 +87,7 @@ class _FeedPageState extends State<FeedPage> {
   Future<void> _submitApplication(InitiativeApplication application) async {
     if (!_requireLogin('postularte')) return;
     try {
-      final saved = await _initiativeRepository.createApplication(application);
+      final saved = await Injection.submitApplication(application);
       if (mounted) setState(() => applications.add(saved));
     } catch (e) {
       _showError(e);
@@ -105,7 +107,7 @@ class _FeedPageState extends State<FeedPage> {
         ),
       ),
     );
-    _initiativeRepository.saveViews(initiative);
+    Injection.saveInitiativeViews(initiative);
     if (mounted) setState(() {});
   }
 
@@ -185,7 +187,7 @@ class _FeedPageState extends State<FeedPage> {
       onLogin: () => _openAuth(false),
       onRegister: () => _openAuth(true),
       onLogout: () async {
-        await _authRepository.logout();
+        await Injection.logoutUser();
         if (!mounted) return;
         setState(() => currentUser = null);
         _loadData();
@@ -218,7 +220,7 @@ class _FeedPageState extends State<FeedPage> {
     required String password,
   }) async {
     if (isRegistering) {
-      return _authRepository.register(
+      return Injection.registerUser(
         name: name,
         email: email,
         program: program,
@@ -226,7 +228,7 @@ class _FeedPageState extends State<FeedPage> {
         password: password,
       );
     }
-    return _authRepository.login(email: email, password: password);
+    return Injection.loginUser(email: email, password: password);
   }
 
   Widget _savedPage() {
@@ -658,7 +660,7 @@ class _FeedPageState extends State<FeedPage> {
     ApplicationStatus status,
   ) async {
     try {
-      await _initiativeRepository.updateApplicationStatus(application, status);
+      await Injection.updateApplicationStatus(application, status);
     } catch (e) {
       _showError(e);
       return;
@@ -736,9 +738,7 @@ class _FeedPageState extends State<FeedPage> {
           );
           if (initiative == null || !mounted) return;
           try {
-            final saved = await _initiativeRepository.createInitiative(
-              initiative,
-            );
+            final saved = await Injection.createInitiative(initiative);
             if (mounted) setState(() => initiatives.add(saved));
           } catch (e) {
             _showError(e);
@@ -1007,7 +1007,7 @@ class _FeedPageState extends State<FeedPage> {
 
     if (shouldDelete == true && mounted) {
       try {
-        await _initiativeRepository.deleteInitiative(initiative);
+        await Injection.deleteInitiative(initiative);
       } catch (e) {
         _showError(e);
         return;
@@ -1030,7 +1030,7 @@ class _FeedPageState extends State<FeedPage> {
     );
     if (edited != null) {
       try {
-        await _initiativeRepository.updateInitiative(edited);
+        await Injection.updateInitiative(edited);
       } catch (e) {
         _showError(e);
       }

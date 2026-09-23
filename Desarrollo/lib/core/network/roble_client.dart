@@ -1,6 +1,6 @@
 import 'package:roble/roble.dart';
 
-/// Conexión única a Roble para toda la app.
+/// Conexión única a Roble para toda la app (capa core/network).
 /// Cambia [contractId] por el id del proyecto que aparece en la consola de Roble.
 class RobleClient {
   RobleClient._();
