@@ -1,21 +1,27 @@
 import 'package:roble/roble.dart';
 
-import '../../../core/roble/roble_client.dart';
-import '../pages/profile_page.dart';
+import '../../domain/entities/auth_result.dart';
+import '../../domain/entities/profile_user.dart';
+import '../../domain/repositories/auth_repository.dart';
+import '../datasources/auth_remote_data_source.dart';
+import '../models/profile_user_model.dart';
 
-/// Registro, inicio de sesión y sesión persistente con Roble.
-class AuthRepository {
-  RobleApiDataBase get _db => RobleClient.db;
+class AuthRepositoryImpl implements AuthRepository {
+  final AuthRemoteDataSource _remote;
 
+  AuthRepositoryImpl(this._remote);
+
+  @override
   Future<ProfileUser?> restoreSession() async {
     try {
-      if (!await _db.restoreSession()) return null;
-      return _toProfileUser(await _db.currentUser());
+      if (!await _remote.restoreSession()) return null;
+      return ProfileUserModel.fromProfile(await _remote.currentUser());
     } catch (_) {
       return null;
     }
   }
 
+  @override
   Future<AuthResult> register({
     required String name,
     required String email,
@@ -24,13 +30,13 @@ class AuthRepository {
     required String password,
   }) async {
     try {
-      await _db.register(
+      await _remote.register(
+        name: name,
         email: email,
         password: password,
-        name: name,
         extra: {'programa': program, 'semestre': semester},
       );
-      return login(email: email, password: password);
+      return await login(email: email, password: password);
     } on RobleApiConflictException {
       return const AuthResult.failure(
         'Ya existe una cuenta con ese correo. Inicia sesión.',
@@ -42,13 +48,14 @@ class AuthRepository {
     }
   }
 
+  @override
   Future<AuthResult> login({
     required String email,
     required String password,
   }) async {
     try {
-      final profile = await _db.login(email: email, password: password);
-      return AuthResult.success(_toProfileUser(profile));
+      final profile = await _remote.login(email: email, password: password);
+      return AuthResult.success(ProfileUserModel.fromProfile(profile));
     } on RobleApiHttpException catch (e) {
       return AuthResult.failure(
         e.statusCode == 401
@@ -62,22 +69,10 @@ class AuthRepository {
     }
   }
 
+  @override
   Future<void> logout() async {
     try {
-      await _db.logout();
+      await _remote.logout();
     } catch (_) {}
-  }
-
-  ProfileUser _toProfileUser(Map<String, dynamic> profile) {
-    final extra = profile['extra'] is Map
-        ? Map<String, dynamic>.from(profile['extra'] as Map)
-        : <String, dynamic>{};
-    return ProfileUser(
-      name: (profile['name'] ?? '').toString(),
-      email: (profile['email'] ?? '').toString(),
-      program: (extra['programa'] ?? '').toString(),
-      semester: (extra['semestre'] ?? '').toString(),
-      password: '',
-    );
   }
 }

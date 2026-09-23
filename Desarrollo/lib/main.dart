@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 
+import 'core/di/injection.dart';
 import 'core/theme/app_theme.dart';
-import 'features/initiatives/pages/feed_page.dart';
-import 'features/profile/data/auth_repository.dart';
-import 'features/profile/pages/profile_page.dart';
+import 'features/auth/domain/entities/profile_user.dart';
+import 'features/initiatives/presentation/pages/feed_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final user = await AuthRepository().restoreSession();
+  Injection.init();
+  final user = await Injection.restoreSession();
   runApp(UninorteInnovacionApp(initialUser: user));
 }
 
