@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../models/initiative.dart';
+import '../../profile/data/auth_repository.dart';
 import '../../profile/pages/profile_page.dart';
+import '../data/initiative_repository.dart';
 import 'initiative_pages.dart';
 
 class FeedPage extends StatefulWidget {
-  final List<Initiative> initiatives;
+  final ProfileUser? initialUser;
 
-  const FeedPage({super.key, required this.initiatives});
+  const FeedPage({super.key, this.initialUser});
 
   @override
   State<FeedPage> createState() => _FeedPageState();
@@ -17,45 +19,95 @@ class FeedPage extends StatefulWidget {
 class _FeedPageState extends State<FeedPage> {
   String selectedFilter = 'Todos';
   int selectedTab = 0;
-  final List<Initiative> myInitiatives = [];
+  final _initiativeRepository = InitiativeRepository();
+  final _authRepository = AuthRepository();
+  List<Initiative> initiatives = [];
   final Set<String> savedInitiativeIds = {};
   ProfileUser? currentUser;
-  ProfileUser? registeredUser;
-  final List<InitiativeApplication> applications = [
-    InitiativeApplication(
-      id: 'received-laura',
-      initiativeId: 'unisports',
-      applicantName: 'Laura Castillo',
-      program: 'Diseño Industrial',
-      semester: '6to semestre',
-      roleName: 'Diseñador UX/UI',
-      skills: 'Figma, User Research, Prototipado',
-      message:
-          'Me interesa mucho la iniciativa porque combina deporte con tecnología. Tengo experiencia en proyectos de rediseño de apps móviles.',
-    ),
-    InitiativeApplication(
-      id: 'received-carlos',
-      initiativeId: 'unisports',
-      applicantName: 'Carlos Mendoza',
-      program: 'Ingeniería de Sistemas',
-      semester: '7mo semestre',
-      roleName: 'Desarrollador Frontend',
-      skills: 'React, TypeScript, Tailwind CSS',
-      message:
-          'He trabajado en dos proyectos web y me apasiona el deporte universitario. Quiero aportar mis conocimientos al equipo.',
-    ),
-    InitiativeApplication(
-      id: 'received-sofia',
-      initiativeId: 'unisports',
-      applicantName: 'Sofía Herrera',
-      program: 'Comunicación Social',
-      semester: '5to semestre',
-      roleName: 'Marketing',
-      skills: 'Instagram, Copywriting, Canva, Estrategia de contenido',
-      message:
-          'Llevo un año manejando redes de organizaciones estudiantiles. Me gustaría aplicar esa experiencia en Unisports.',
-    ),
-  ];
+  final List<InitiativeApplication> applications = [];
+  bool isLoading = true;
+  String? loadError;
+
+  List<Initiative> get myInitiatives =>
+      initiatives.where((initiative) => initiative.isMine).toList();
+
+  @override
+  void initState() {
+    super.initState();
+    currentUser = widget.initialUser;
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      isLoading = true;
+      loadError = null;
+    });
+    try {
+      final loadedInitiatives = await _initiativeRepository.fetchInitiatives();
+      final loadedApplications = await _initiativeRepository.fetchApplications();
+      if (!mounted) return;
+      setState(() {
+        initiatives = loadedInitiatives;
+        applications
+          ..clear()
+          ..addAll(loadedApplications);
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => loadError = 'No se pudieron cargar las iniciativas. $e');
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
+
+  bool _requireLogin(String action) {
+    if (currentUser != null) return true;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Inicia sesión para $action.'),
+        action: SnackBarAction(
+          label: 'Entrar',
+          onPressed: () => _openAuth(false),
+        ),
+      ),
+    );
+    return false;
+  }
+
+  void _showError(Object error) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error con Roble: $error')),
+    );
+  }
+
+  Future<void> _submitApplication(InitiativeApplication application) async {
+    if (!_requireLogin('postularte')) return;
+    try {
+      final saved = await _initiativeRepository.createApplication(application);
+      if (mounted) setState(() => applications.add(saved));
+    } catch (e) {
+      _showError(e);
+    }
+  }
+
+  Future<void> _openDetail(Initiative initiative) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => InitiativeDetailPage(
+          initiative: initiative,
+          applications: applications
+              .where((item) => item.initiativeId == initiative.id)
+              .toList(),
+          onApplicationSubmitted: _submitApplication,
+        ),
+      ),
+    );
+    _initiativeRepository.saveViews(initiative);
+    if (mounted) setState(() {});
+  }
 
   final filters = const [
     'Todos',
@@ -64,10 +116,7 @@ class _FeedPageState extends State<FeedPage> {
     'Ingeniería',
   ];
 
-  List<Initiative> get allInitiatives => [
-    ...widget.initiatives,
-    ...myInitiatives,
-  ];
+  List<Initiative> get allInitiatives => initiatives;
 
   List<Initiative> get visibleInitiatives {
     if (selectedFilter == 'Todos') return allInitiatives;
@@ -135,7 +184,12 @@ class _FeedPageState extends State<FeedPage> {
       user: currentUser,
       onLogin: () => _openAuth(false),
       onRegister: () => _openAuth(true),
-      onLogout: () => setState(() => currentUser = null),
+      onLogout: () async {
+        await _authRepository.logout();
+        if (!mounted) return;
+        setState(() => currentUser = null);
+        _loadData();
+      },
     );
   }
 
@@ -149,7 +203,10 @@ class _FeedPageState extends State<FeedPage> {
         ),
       ),
     );
-    if (user != null && mounted) setState(() => currentUser = user);
+    if (user != null && mounted) {
+      setState(() => currentUser = user);
+      _loadData();
+    }
   }
 
   Future<AuthResult> _authenticate({
@@ -161,27 +218,15 @@ class _FeedPageState extends State<FeedPage> {
     required String password,
   }) async {
     if (isRegistering) {
-      if (registeredUser != null) {
-        return const AuthResult.failure(
-          'Ya existe una cuenta en esta sesión. Inicia sesión para continuar.',
-        );
-      }
-      final user = ProfileUser(
+      return _authRepository.register(
         name: name,
         email: email,
         program: program,
         semester: semester,
         password: password,
       );
-      registeredUser = user;
-      return AuthResult.success(user);
     }
-
-    final user = registeredUser;
-    if (user == null || user.email != email || user.password != password) {
-      return const AuthResult.failure('El correo o la contraseña no son correctos.');
-    }
-    return AuthResult.success(user);
+    return _authRepository.login(email: email, password: password);
   }
 
   Widget _savedPage() {
@@ -275,13 +320,44 @@ class _FeedPageState extends State<FeedPage> {
       children: [
         _header(),
         Expanded(
-          child: ListView(
+          child: RefreshIndicator(
+            onRefresh: _loadData,
+            child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
             children: [
               _intro(context),
               const SizedBox(height: 14),
               _filters(),
               const SizedBox(height: 18),
+              if (isLoading)
+                const Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              if (!isLoading && loadError != null)
+                Column(
+                  children: [
+                    Text(
+                      loadError!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Color(0xFFB42318)),
+                    ),
+                    TextButton(
+                      onPressed: _loadData,
+                      child: const Text('Reintentar'),
+                    ),
+                  ],
+                ),
+              if (!isLoading && loadError == null && visibleInitiatives.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text(
+                    'Aún no hay iniciativas publicadas.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Color(0xFF6B7280)),
+                  ),
+                ),
               ...visibleInitiatives.map(
                 (initiative) => Padding(
                   padding: const EdgeInsets.only(bottom: 14),
@@ -290,53 +366,73 @@ class _FeedPageState extends State<FeedPage> {
               ),
             ],
           ),
+          ),
         ),
       ],
     );
   }
 
-  Widget _applicationsSection() {
-    if (applications.isEmpty) return const SizedBox.shrink();
+  List<InitiativeApplication> get receivedApplications {
+    final myIds = myInitiatives.map((initiative) => initiative.id).toSet();
+    return applications
+        .where((item) => myIds.contains(item.initiativeId) && !item.isMine)
+        .toList();
+  }
 
-    final initiative = allInitiatives.firstWhere(
-      (item) => item.id == applications.first.initiativeId,
-    );
-    final pendingApplications = applications
+  Widget _applicationsSection() {
+    final received = receivedApplications;
+    if (received.isEmpty) return const SizedBox.shrink();
+
+    final pendingApplications = received
         .where((item) => item.status == ApplicationStatus.pending)
         .length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            const Expanded(
-              child: Text(
-                'Postulaciones recibidas',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                initiative.title,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ),
-            _tag('Mi iniciativa', const Color(0xFFE7EEF8), AppTheme.navy),
-          ],
+        const Text(
+          'Postulaciones recibidas',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 3),
         Text(
-          '$pendingApplications pendientes · ${applications.length} en total',
+          '$pendingApplications pendientes · ${received.length} en total',
           style: const TextStyle(color: Color(0xFF52627A), fontSize: 12),
         ),
         const SizedBox(height: 12),
-        ...applications.map(_applicationCard),
+        ...received.map((application) {
+          final initiative = initiatives
+              .where((item) => item.id == application.initiativeId)
+              .firstOrNull;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (initiative != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          initiative.title,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      _tag(
+                        'Mi iniciativa',
+                        const Color(0xFFE7EEF8),
+                        AppTheme.navy,
+                      ),
+                    ],
+                  ),
+                ),
+              _applicationCard(application),
+            ],
+          );
+        }),
       ],
     );
   }
@@ -557,10 +653,17 @@ class _FeedPageState extends State<FeedPage> {
     );
   }
 
-  void _updateApplication(
+  Future<void> _updateApplication(
     InitiativeApplication application,
     ApplicationStatus status,
-  ) {
+  ) async {
+    try {
+      await _initiativeRepository.updateApplicationStatus(application, status);
+    } catch (e) {
+      _showError(e);
+      return;
+    }
+    if (!mounted) return;
     setState(() => application.status = status);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -604,30 +707,41 @@ class _FeedPageState extends State<FeedPage> {
 
   Widget _intro(BuildContext context) => Row(
     children: [
-      const Expanded(
+      Expanded(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'Explora proyectos',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 3),
+            const SizedBox(height: 3),
             Text(
-              '3 iniciativas activas',
-              style: TextStyle(color: Color(0xFF6B7280), fontSize: 12),
+              '${allInitiatives.where((i) => i.isActive).length} iniciativas activas',
+              style: const TextStyle(color: Color(0xFF6B7280), fontSize: 12),
             ),
           ],
         ),
       ),
       ElevatedButton.icon(
         onPressed: () async {
+          if (!_requireLogin('publicar un proyecto')) return;
           final initiative = await Navigator.push<Initiative>(
             context,
-            MaterialPageRoute(builder: (_) => const PublishInitiativePage()),
+            MaterialPageRoute(
+              builder: (_) => PublishInitiativePage(
+                leaderName: currentUser?.name ?? 'Tú',
+              ),
+            ),
           );
-          if (initiative != null && mounted) {
-            setState(() => myInitiatives.add(initiative));
+          if (initiative == null || !mounted) return;
+          try {
+            final saved = await _initiativeRepository.createInitiative(
+              initiative,
+            );
+            if (mounted) setState(() => initiatives.add(saved));
+          } catch (e) {
+            _showError(e);
           }
         },
         icon: const Icon(Icons.add, size: 17),
@@ -834,23 +948,7 @@ class _FeedPageState extends State<FeedPage> {
             children: [
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => InitiativeDetailPage(
-                          initiative: initiative,
-                          applications: applications
-                              .where((item) => item.initiativeId == initiative.id)
-                              .toList(),
-                          onApplicationSubmitted: (application) => setState(
-                            () => applications.add(application),
-                          ),
-                        ),
-                      ),
-                    );
-                    if (mounted) setState(() {});
-                  },
+                  onPressed: () => _openDetail(initiative),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.navy,
                     foregroundColor: Colors.white,
@@ -861,23 +959,7 @@ class _FeedPageState extends State<FeedPage> {
               const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => InitiativeDetailPage(
-                          initiative: initiative,
-                          applications: applications
-                              .where((item) => item.initiativeId == initiative.id)
-                              .toList(),
-                          onApplicationSubmitted: (application) => setState(
-                            () => applications.add(application),
-                          ),
-                        ),
-                      ),
-                    );
-                    if (mounted) setState(() {});
-                  },
+                  onPressed: () => _openDetail(initiative),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppTheme.navy,
                     side: const BorderSide(color: AppTheme.navy),
@@ -924,8 +1006,15 @@ class _FeedPageState extends State<FeedPage> {
     );
 
     if (shouldDelete == true && mounted) {
+      try {
+        await _initiativeRepository.deleteInitiative(initiative);
+      } catch (e) {
+        _showError(e);
+        return;
+      }
+      if (!mounted) return;
       setState(
-        () => myInitiatives.removeWhere((item) => item.id == initiative.id),
+        () => initiatives.removeWhere((item) => item.id == initiative.id),
       );
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Iniciativa eliminada.')));
@@ -933,12 +1022,19 @@ class _FeedPageState extends State<FeedPage> {
   }
 
   Future<void> _editInitiative(Initiative initiative) async {
-    await Navigator.push(
+    final edited = await Navigator.push<Initiative>(
       context,
       MaterialPageRoute(
         builder: (_) => PublishInitiativePage(initiative: initiative),
       ),
     );
+    if (edited != null) {
+      try {
+        await _initiativeRepository.updateInitiative(edited);
+      } catch (e) {
+        _showError(e);
+      }
+    }
     if (mounted) setState(() {});
   }
 }
