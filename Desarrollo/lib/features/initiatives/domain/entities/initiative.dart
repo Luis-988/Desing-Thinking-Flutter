@@ -1,3 +1,5 @@
+/// Entidad de dominio: una iniciativa publicada por un estudiante.
+/// No conoce Roble ni JSON; eso vive en la capa data.
 class Initiative {
   final String id;
   String title;
@@ -8,6 +10,7 @@ class Initiative {
   final bool isActive;
   List<InitiativeRole> roles;
   int views;
+  bool isMine;
 
   static const int automaticPopularityThreshold = 10;
 
@@ -24,40 +27,16 @@ class Initiative {
     required this.isActive,
     required this.roles,
     this.views = 0,
+    this.isMine = false,
   });
 
   void registerView() => views++;
 }
 
+/// Vacante que ofrece una iniciativa.
 class InitiativeRole {
   final String name;
   final String description;
 
   const InitiativeRole({required this.name, required this.description});
-}
-
-enum ApplicationStatus { pending, accepted, rejected }
-
-class InitiativeApplication {
-  final String id;
-  final String initiativeId;
-  final String applicantName;
-  final String program;
-  final String semester;
-  final String roleName;
-  final String skills;
-  final String message;
-  ApplicationStatus status;
-
-  InitiativeApplication({
-    required this.id,
-    required this.initiativeId,
-    required this.applicantName,
-    this.program = 'Programa académico',
-    this.semester = 'Semestre no indicado',
-    required this.roleName,
-    this.skills = 'Habilidades por confirmar',
-    required this.message,
-    this.status = ApplicationStatus.pending,
-  });
 }

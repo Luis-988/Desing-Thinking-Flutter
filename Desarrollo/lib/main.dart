@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
 
+import 'core/di/injection.dart';
 import 'core/theme/app_theme.dart';
-import 'features/initiatives/data/initiative_data.dart';
-import 'features/initiatives/pages/feed_page.dart';
+import 'features/auth/domain/entities/profile_user.dart';
+import 'features/initiatives/presentation/pages/feed_page.dart';
 
-void main() {
-  runApp(const UninorteInnovacionApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  Injection.init();
+  final user = await Injection.restoreSession();
+  runApp(UninorteInnovacionApp(initialUser: user));
 }
 
 class UninorteInnovacionApp extends StatelessWidget {
-  const UninorteInnovacionApp({super.key});
+  final ProfileUser? initialUser;
+
+  const UninorteInnovacionApp({super.key, this.initialUser});
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +24,7 @@ class UninorteInnovacionApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       scrollBehavior: const _NoStretchScrollBehavior(),
-      home: FeedPage(initiatives: localInitiatives),
+      home: FeedPage(initialUser: initialUser),
     );
   }
 }
