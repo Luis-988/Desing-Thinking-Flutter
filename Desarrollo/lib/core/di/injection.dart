@@ -16,10 +16,13 @@ import '../../features/initiatives/domain/usecases/save_initiative_views.dart';
 import '../../features/initiatives/domain/usecases/submit_application.dart';
 import '../../features/initiatives/domain/usecases/update_application_status.dart';
 import '../../features/initiatives/domain/usecases/update_initiative.dart';
+import '../../features/auth/presentation/providers/session_controller.dart';
+import '../../features/initiatives/presentation/providers/initiatives_controller.dart';
 import '../network/roble_client.dart';
 
 /// Inyección de dependencias manual: arma data -> domain una sola vez.
 /// En pruebas se pueden pasar repositorios falsos a [init].
+/// Los controladores se crean desde aquí para no acoplar la UI a `data`.
 class Injection {
   Injection._();
 
@@ -61,4 +64,24 @@ class Injection {
       SubmitApplication(_initiativeRepository);
   static UpdateApplicationStatus get updateApplicationStatus =>
       UpdateApplicationStatus(_initiativeRepository);
+
+  // Controladores de estado (presentación)
+  static SessionController createSessionController() => SessionController(
+    restoreSession: restoreSession,
+    loginUser: loginUser,
+    registerUser: registerUser,
+    logoutUser: logoutUser,
+  );
+
+  static InitiativesController createInitiativesController() =>
+      InitiativesController(
+        getInitiatives: getInitiatives,
+        createInitiative: createInitiative,
+        updateInitiative: updateInitiative,
+        deleteInitiative: deleteInitiative,
+        saveViews: saveInitiativeViews,
+        getApplications: getApplications,
+        submitApplication: submitApplication,
+        updateApplicationStatus: updateApplicationStatus,
+      );
 }

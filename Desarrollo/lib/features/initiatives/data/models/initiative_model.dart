@@ -16,7 +16,14 @@ class InitiativeModel {
     'activa': initiative.isActive,
     'vacantes': jsonEncode(
       initiative.roles
-          .map((role) => {'name': role.name, 'description': role.description})
+          .map(
+            (role) => {
+              'name': role.name,
+              'description': role.description,
+              'slots': role.slots,
+              'skills': role.skills,
+            },
+          )
           .toList(),
     ),
     'visitas': initiative.views,
@@ -39,11 +46,21 @@ class InitiativeModel {
             (e) => InitiativeRole(
               name: (e['name'] ?? '').toString(),
               description: (e['description'] ?? '').toString(),
+              slots: _slotsFrom(e['slots']),
+              skills: decodeJsonList(e['skills'])
+                  .map((skill) => skill.toString())
+                  .toList(),
             ),
           )
           .toList(),
       views: int.tryParse('${row['visitas'] ?? 0}') ?? 0,
       isMine: isMine,
     );
+  }
+
+  /// Las filas antiguas no tienen `slots`: se asume una plaza.
+  static int _slotsFrom(dynamic value) {
+    final parsed = int.tryParse('${value ?? 1}') ?? 1;
+    return parsed < 1 ? 1 : parsed;
   }
 }
