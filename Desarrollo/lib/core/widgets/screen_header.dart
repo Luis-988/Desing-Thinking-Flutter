@@ -9,6 +9,7 @@ class ScreenHeader extends StatelessWidget {
   final String title;
   final String? subtitle;
   final Widget? trailing;
+  final String? logoAsset;
 
   const ScreenHeader({
     super.key,
@@ -16,6 +17,7 @@ class ScreenHeader extends StatelessWidget {
     required this.title,
     this.subtitle,
     this.trailing,
+    this.logoAsset,
   });
 
   @override
@@ -33,13 +35,28 @@ class ScreenHeader extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: logoAsset == null ? 44 : 64,
+                height: logoAsset == null ? 44 : 64,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.14),
+                  color: logoAsset == null
+                      ? Colors.white.withValues(alpha: 0.14)
+                      : Colors.white,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(icon, color: Colors.white, size: 24),
+                child: logoAsset == null
+                    ? Icon(icon, color: Colors.white, size: 24)
+                    : Padding(
+                        padding: const EdgeInsets.all(2),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.asset(
+                            logoAsset!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) =>
+                                Icon(icon, color: Colors.white, size: 24),
+                          ),
+                        ),
+                      ),
               ),
               const SizedBox(width: 14),
               Expanded(

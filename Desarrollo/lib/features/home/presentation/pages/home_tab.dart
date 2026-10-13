@@ -26,6 +26,7 @@ class HomeTab extends StatelessWidget {
       children: [
         ScreenHeader(
           icon: Icons.home_outlined,
+          logoAsset: 'assets/images/innovation_hub_mark.png',
           title: 'Inicio',
           subtitle: firstName == null || firstName.isEmpty
               ? 'Innovación Uninorte'
