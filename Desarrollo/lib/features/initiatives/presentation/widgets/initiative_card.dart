@@ -20,6 +20,9 @@ class InitiativeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final roles = initiative.roles;
+    final isAlmostFull = initiative.isActive &&
+        initiative.openSlots > 0 &&
+        initiative.openSlots <= 1;
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -33,6 +36,10 @@ class InitiativeCard extends StatelessWidget {
                 children: [
                   if (initiative.isPopular)
                     const AppTag.accent('MÁS POPULAR', icon: Icons.local_fire_department),
+                  if (isAlmostFull) ...[
+                    if (initiative.isPopular) const SizedBox(width: 6),
+                    const AppTag.warning('ÚLTIMA PLAZA', icon: Icons.bolt),
+                  ],
                   if (initiative.isMine) ...[
                     if (initiative.isPopular) const SizedBox(width: 6),
                     const AppTag('Mi iniciativa'),
@@ -100,6 +107,18 @@ class InitiativeCard extends StatelessWidget {
                           icon: Icons.group_add_outlined,
                           text:
                               '${initiative.openSlots} ${initiative.openSlots == 1 ? 'plaza' : 'plazas'}',
+                        ),
+                        const Spacer(),
+                        Text(
+                          initiative.openSlots == 0
+                              ? 'Equipo completo'
+                              : 'Buscando equipo',
+                          style: AppText.caption.copyWith(
+                            color: initiative.openSlots == 0
+                                ? AppColors.muted
+                                : AppColors.successFg,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ],
                     ),

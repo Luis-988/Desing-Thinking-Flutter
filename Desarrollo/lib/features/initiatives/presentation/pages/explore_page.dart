@@ -102,6 +102,38 @@ class _ExplorePageState extends State<ExplorePage> {
                       ],
                     ),
                   ),
+                Row(
+                  children: [
+                    const Text('Ordenar por', style: AppText.caption),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<InitiativeSort>(
+                          value: controller.sort,
+                          isExpanded: true,
+                          alignment: AlignmentDirectional.centerEnd,
+                          items: const [
+                            DropdownMenuItem(
+                              value: InitiativeSort.recent,
+                              child: Text('Más recientes'),
+                            ),
+                            DropdownMenuItem(
+                              value: InitiativeSort.popular,
+                              child: Text('Más populares'),
+                            ),
+                            DropdownMenuItem(
+                              value: InitiativeSort.availableSlots,
+                              child: Text('Más plazas disponibles'),
+                            ),
+                          ],
+                          onChanged: (value) {
+                            if (value != null) controller.setSort(value);
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 14),
                 ..._body(context, controller, results),
               ],

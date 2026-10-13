@@ -15,6 +15,8 @@ import '../../domain/usecases/submit_application.dart';
 import '../../domain/usecases/update_application_status.dart';
 import '../../domain/usecases/update_initiative.dart';
 
+enum InitiativeSort { recent, popular, availableSlots }
+
 /// Estado de iniciativas y postulaciones. Las pantallas lo observan con
 /// Provider y nunca hablan directamente con la capa de datos.
 class InitiativesController extends ChangeNotifier {
@@ -52,6 +54,7 @@ class InitiativesController extends ChangeNotifier {
   final Set<String> _savedIds = {};
   String _filter = allFilter;
   String _query = '';
+  InitiativeSort _sort = InitiativeSort.recent;
   bool _isLoading = true;
   String? _error;
   SessionStatus? _lastSessionStatus;
@@ -62,6 +65,7 @@ class InitiativesController extends ChangeNotifier {
   String? get error => _error;
   String get filter => _filter;
   String get query => _query;
+  InitiativeSort get sort => _sort;
   List<Initiative> get initiatives => List.unmodifiable(_initiatives);
   List<InitiativeApplication> get applications =>
       List.unmodifiable(_applications);
@@ -71,6 +75,17 @@ class InitiativesController extends ChangeNotifier {
 
   List<Initiative> get popularInitiatives =>
       activeInitiatives.where((item) => item.isPopular).toList();
+
+  /// Selección breve para Inicio basada en popularidad, actividad y plazas.
+  List<Initiative> get recommendedInitiatives {
+    final recommendations = [...activeInitiatives]
+      ..sort((a, b) {
+        final scoreA = (a.isPopular ? 3 : 0) + (a.openSlots > 0 ? 2 : 0);
+        final scoreB = (b.isPopular ? 3 : 0) + (b.openSlots > 0 ? 2 : 0);
+        return scoreB.compareTo(scoreA);
+      });
+    return recommendations.take(3).toList();
+  }
 
   /// Las más recientes primero (Roble las devuelve en orden de creación).
   List<Initiative> get recentInitiatives =>
@@ -130,7 +145,7 @@ class InitiativesController extends ChangeNotifier {
 
   List<Initiative> get filteredInitiatives {
     final text = _query.trim().toLowerCase();
-    return _initiatives.where((initiative) {
+    final filtered = activeInitiatives.where((initiative) {
       final matchesFilter =
           _filter == allFilter ||
           initiative.categories.contains(_filter) ||
@@ -143,7 +158,23 @@ class InitiativesController extends ChangeNotifier {
           initiative.categories.any((c) => c.toLowerCase().contains(text)) ||
           initiative.roles.any((r) => r.name.toLowerCase().contains(text));
     }).toList();
+    filtered.sort(_compareBySort);
+    return filtered;
   }
+
+  int _compareBySort(Initiative a, Initiative b) {
+    switch (_sort) {
+      case InitiativeSort.popular:
+        return _popularityScore(b).compareTo(_popularityScore(a));
+      case InitiativeSort.availableSlots:
+        return b.openSlots.compareTo(a.openSlots);
+      case InitiativeSort.recent:
+        return _initiatives.indexOf(b).compareTo(_initiatives.indexOf(a));
+    }
+  }
+
+  int _popularityScore(Initiative initiative) =>
+      (initiative.isPopular ? 1000000 : 0) + initiative.views;
 
   Initiative? initiativeById(String id) {
     for (final initiative in _initiatives) {
@@ -205,6 +236,12 @@ class InitiativesController extends ChangeNotifier {
 
   void setQuery(String value) {
     _query = value;
+    notifyListeners();
+  }
+
+  void setSort(InitiativeSort value) {
+    if (_sort == value) return;
+    _sort = value;
     notifyListeners();
   }
 

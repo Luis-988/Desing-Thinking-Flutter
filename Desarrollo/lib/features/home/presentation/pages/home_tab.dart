@@ -49,7 +49,10 @@ class HomeTab extends StatelessWidget {
     );
   }
 
-  List<Widget> _content(BuildContext context, InitiativesController controller) {
+  List<Widget> _content(
+    BuildContext context,
+    InitiativesController controller,
+  ) {
     if (controller.isLoading && controller.initiatives.isEmpty) {
       return const [SkeletonList(count: 2)];
     }
@@ -57,12 +60,16 @@ class HomeTab extends StatelessWidget {
       return [
         SizedBox(
           height: 320,
-          child: ErrorState(message: controller.error!, onRetry: controller.load),
+          child: ErrorState(
+            message: controller.error!,
+            onRetry: controller.load,
+          ),
         ),
       ];
     }
 
     final popular = controller.popularInitiatives;
+    final recommended = controller.recommendedInitiatives;
     final recent = controller.recentInitiatives;
     final demand = _roleDemand(controller.activeInitiatives);
 
@@ -90,7 +97,10 @@ class HomeTab extends StatelessWidget {
       ),
       if (popular.isNotEmpty) ...[
         const SizedBox(height: 28),
-        const _SectionTitle(title: 'Más populares', icon: Icons.local_fire_department),
+        const _SectionTitle(
+          title: 'Más populares',
+          icon: Icons.local_fire_department,
+        ),
         const SizedBox(height: 12),
         SizedBox(
           height: 200,
@@ -103,9 +113,44 @@ class HomeTab extends StatelessWidget {
           ),
         ),
       ],
+      if (recommended.isNotEmpty) ...[
+        const SizedBox(height: 28),
+        Card(
+          margin: EdgeInsets.zero,
+          clipBehavior: Clip.antiAlias,
+          child: ExpansionTile(
+            initiallyExpanded: false,
+            leading: const Icon(Icons.auto_awesome, color: AppColors.orange),
+            title: const Text(
+              'Descubre proyectos para ti',
+              style: AppText.sectionTitle,
+            ),
+            subtitle: const Text(
+              'Recomendaciones con oportunidades abiertas',
+              style: AppText.caption,
+            ),
+            childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+            children: [
+              SizedBox(
+                height: 200,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: recommended.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 12),
+                  itemBuilder: (_, index) =>
+                      CompactInitiativeCard(initiative: recommended[index]),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
       if (demand.isNotEmpty) ...[
         const SizedBox(height: 28),
-        const _SectionTitle(title: 'Roles más buscados', icon: Icons.work_outline),
+        const _SectionTitle(
+          title: 'Roles más buscados',
+          icon: Icons.work_outline,
+        ),
         const SizedBox(height: 12),
         Wrap(
           spacing: 8,
@@ -192,7 +237,11 @@ class _HeroCard extends StatelessWidget {
           const SizedBox(height: 8),
           const Text(
             'Descubre proyectos de la universidad, súmate con tu perfil o publica tu propia idea.',
-            style: TextStyle(color: Color(0xFFD3DEF2), fontSize: 15, height: 1.45),
+            style: TextStyle(
+              color: Color(0xFFD3DEF2),
+              fontSize: 15,
+              height: 1.45,
+            ),
           ),
           const SizedBox(height: 18),
           Row(
@@ -233,7 +282,11 @@ class _StatTile extends StatelessWidget {
   final String value;
   final String label;
 
-  const _StatTile({required this.icon, required this.value, required this.label});
+  const _StatTile({
+    required this.icon,
+    required this.value,
+    required this.label,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -285,8 +338,12 @@ class _SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 22, color: AppColors.orange),
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Icon(icon, size: 22, color: AppColors.orange),
+        ),
         const SizedBox(width: 8),
         Expanded(child: Text(title, style: AppText.sectionTitle)),
         if (actionLabel != null)
