@@ -10,10 +10,10 @@ class InitiativeApplication {
   final String roleName;
   final String skills;
   final String message;
-  ApplicationStatus status;
-  bool isMine;
+  final ApplicationStatus status;
+  final bool isMine;
 
-  InitiativeApplication({
+  const InitiativeApplication({
     required this.id,
     required this.initiativeId,
     required this.applicantName,
@@ -25,4 +25,19 @@ class InitiativeApplication {
     this.status = ApplicationStatus.pending,
     this.isMine = false,
   });
+
+  InitiativeApplication copyWith({ApplicationStatus? status}) {
+    return InitiativeApplication(
+      id: id,
+      initiativeId: initiativeId,
+      applicantName: applicantName,
+      program: program,
+      semester: semester,
+      roleName: roleName,
+      skills: skills,
+      message: message,
+      status: status ?? this.status,
+      isMine: isMine,
+    );
+  }
 }

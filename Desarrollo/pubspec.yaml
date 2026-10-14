@@ -35,6 +35,8 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   roble: ^1.12.0
+  provider: ^6.1.5
+  google_fonts: ^6.3.0
 
 dev_dependencies:
   flutter_test:
@@ -57,6 +59,9 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - assets/images/innovation_hub_mark.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:
