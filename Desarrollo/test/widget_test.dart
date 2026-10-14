@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 
+import 'package:desing_thinking_flutter/core/theme/app_theme.dart';
+import 'package:desing_thinking_flutter/core/theme/theme_controller.dart';
 import 'package:desing_thinking_flutter/core/di/injection.dart';
 import 'package:desing_thinking_flutter/core/error/app_exception.dart';
 import 'package:desing_thinking_flutter/features/auth/domain/entities/auth_result.dart';
@@ -14,10 +17,13 @@ import 'package:desing_thinking_flutter/features/initiatives/presentation/provid
 import 'package:desing_thinking_flutter/main.dart';
 
 class FakeAuthRepository implements AuthRepository {
+  final ProfileUser? restoredUser;
   final Map<String, (String password, ProfileUser user)> _users = {};
 
+  FakeAuthRepository({this.restoredUser});
+
   @override
-  Future<ProfileUser?> restoreSession() async => null;
+  Future<ProfileUser?> restoreSession() async => restoredUser;
 
   @override
   Future<AuthResult> register({
@@ -363,6 +369,67 @@ void main() {
 
       expect(find.text('2 iniciativas activas'), findsOneWidget);
       expect(find.text('Proyecto propio'), findsWidgets);
+    });
+
+    testWidgets('activar modo oscuro no produce errores', (tester) async {
+      final controller = ThemeController();
+      await tester.pumpWidget(
+        ChangeNotifierProvider.value(
+          value: controller,
+          child: Consumer<ThemeController>(
+            builder: (context, theme, _) => MaterialApp(
+              theme: AppTheme.light(useGoogleFonts: false),
+              darkTheme: AppTheme.dark(useGoogleFonts: false),
+              themeMode: theme.mode,
+              home: Scaffold(
+                body: SwitchListTile(
+                  title: const Text('Modo oscuro'),
+                  value: theme.isDark,
+                  onChanged: (_) => theme.toggle(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(SwitchListTile));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(controller.isDark, isTrue);
+      expect(
+        Theme.of(tester.element(find.byType(SwitchListTile))).brightness,
+        Brightness.dark,
+      );
+    });
+
+    testWidgets('el perfil autenticado activa el modo oscuro', (tester) async {
+      useTallScreen(tester);
+      Injection.init(
+        authRepository: FakeAuthRepository(
+          restoredUser: const ProfileUser(
+            name: 'Ana Torres',
+            email: 'ana@example.com',
+            program: 'Ingeniería',
+            semester: '5',
+          ),
+        ),
+        initiativeRepository: FakeInitiativeRepository(),
+      );
+      await tester.pumpWidget(
+        const UninorteInnovacionApp(useGoogleFonts: false),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Perfil').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(SwitchListTile));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Tema oscuro activado'), findsOneWidget);
     });
   });
 }

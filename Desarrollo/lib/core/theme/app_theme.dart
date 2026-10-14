@@ -171,10 +171,43 @@ class AppTheme {
           borderSide: const BorderSide(color: Color(0xFF8FB5FF), width: 1.6),
         ),
       ),
-      navigationBarTheme: const NavigationBarThemeData(
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: const Color(0xFF8FB5FF),
+          foregroundColor: const Color(0xFF0F172A),
+          minimumSize: const Size.fromHeight(48),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: const Color(0xFF8FB5FF),
+          minimumSize: const Size.fromHeight(48),
+          side: const BorderSide(color: Color(0xFF8FB5FF)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+        ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
         backgroundColor: Color(0xFF182338),
         indicatorColor: Color(0xFF2C4670),
         height: 68,
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) => TextStyle(
+            fontSize: 12,
+            fontWeight: states.contains(WidgetState.selected)
+                ? FontWeight.w700
+                : FontWeight.w500,
+            color: states.contains(WidgetState.selected)
+                ? Color(0xFF8FB5FF)
+                : Color(0xFF94A3B8),
+          ),
+        ),
       ),
       dividerTheme: const DividerThemeData(color: Color(0xFF2D3B55)),
       snackBarTheme: SnackBarThemeData(

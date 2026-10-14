@@ -62,6 +62,7 @@ class _ThemedApp extends StatelessWidget {
       theme: AppTheme.light(useGoogleFonts: useGoogleFonts),
       darkTheme: AppTheme.dark(useGoogleFonts: useGoogleFonts),
       themeMode: mode,
+      themeAnimationDuration: Duration.zero,
       scrollBehavior: const _NoStretchScrollBehavior(),
       home: const _AppRoot(),
     );
