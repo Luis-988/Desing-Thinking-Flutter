@@ -331,6 +331,27 @@ void main() {
       expect(controller.initiativeById('mine')!.views, 0);
       expect(controller.initiativeById('unisports')!.views, 1);
     });
+
+    test('al aceptar una postulación reduce la plaza disponible', () async {
+      final controller = buildController(FakeInitiativeRepository());
+      await controller.load();
+
+      final application = InitiativeApplication(
+        id: 'app-1',
+        initiativeId: 'unisports',
+        applicantName: 'Ana Torres',
+        roleName: 'Diseñador UX/UI',
+        message: 'Quiero aportar.',
+      );
+
+      await controller.setApplicationStatus(
+        application,
+        ApplicationStatus.accepted,
+      );
+
+      expect(controller.initiativeById('unisports')!.openSlots, 1);
+      expect(controller.initiativeById('unisports')!.roles.single.slots, 1);
+    });
   });
 
   group('App', () {
