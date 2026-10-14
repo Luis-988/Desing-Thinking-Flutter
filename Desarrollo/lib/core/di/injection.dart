@@ -6,8 +6,11 @@ import '../../features/auth/domain/usecases/logout_user.dart';
 import '../../features/auth/domain/usecases/register_user.dart';
 import '../../features/auth/domain/usecases/restore_session.dart';
 import '../../features/initiatives/data/datasources/initiative_remote_data_source.dart';
+import '../../features/initiatives/data/datasources/project_activity_remote_data_source.dart';
 import '../../features/initiatives/data/repositories/initiative_repository_impl.dart';
+import '../../features/initiatives/data/repositories/project_activity_repository_impl.dart';
 import '../../features/initiatives/domain/repositories/initiative_repository.dart';
+import '../../features/initiatives/domain/repositories/project_activity_repository.dart';
 import '../../features/initiatives/domain/usecases/create_initiative.dart';
 import '../../features/initiatives/domain/usecases/delete_initiative.dart';
 import '../../features/initiatives/domain/usecases/get_applications.dart';
@@ -18,6 +21,7 @@ import '../../features/initiatives/domain/usecases/update_application_status.dar
 import '../../features/initiatives/domain/usecases/update_initiative.dart';
 import '../../features/auth/presentation/providers/session_controller.dart';
 import '../../features/initiatives/presentation/providers/initiatives_controller.dart';
+import '../../features/initiatives/presentation/providers/project_activities_controller.dart';
 import '../network/roble_client.dart';
 
 /// Inyección de dependencias manual: arma data -> domain una sola vez.
@@ -28,10 +32,12 @@ class Injection {
 
   static late AuthRepository _authRepository;
   static late InitiativeRepository _initiativeRepository;
+  static late ProjectActivityRepository _projectActivityRepository;
 
   static void init({
     AuthRepository? authRepository,
     InitiativeRepository? initiativeRepository,
+    ProjectActivityRepository? projectActivityRepository,
   }) {
     _authRepository =
         authRepository ??
@@ -39,6 +45,11 @@ class Injection {
     _initiativeRepository =
         initiativeRepository ??
         InitiativeRepositoryImpl(InitiativeRemoteDataSource(RobleClient.db));
+    _projectActivityRepository =
+        projectActivityRepository ??
+        ProjectActivityRepositoryImpl(
+          ProjectActivityRemoteDataSource(RobleClient.db),
+        );
   }
 
   // Auth
@@ -84,4 +95,7 @@ class Injection {
         submitApplication: submitApplication,
         updateApplicationStatus: updateApplicationStatus,
       );
+
+  static ProjectActivitiesController createProjectActivitiesController() =>
+      ProjectActivitiesController(_projectActivityRepository);
 }

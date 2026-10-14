@@ -59,6 +59,6 @@ Para cambiar de backend basta con una nueva implementación del repositorio. Las
 
 ## Espacio de trabajo del proyecto
 
-Cuando todas las plazas de una iniciativa tienen integrantes aceptados, aparece la acción **Iniciar trabajo del proyecto** en **Mis iniciativas**. El espacio organiza los 12 entregables de las semanas 1 a 5 en formularios editables, muestra el equipo aceptado y guarda automáticamente el avance en el dispositivo mediante `shared_preferences`.
+El líder puede abrir la ruta desde **Mis iniciativas** o desde la ficha de su iniciativa; los integrantes aceptados pueden abrirla desde la ficha. La ruta no incluye semanas ni entregables predefinidos: el líder crea, modifica y elimina actividades con fecha límite desde el calendario. Se agrupan automáticamente por semana (lunes a domingo). El líder y los integrantes aceptados pueden marcar cada actividad como realizada.
 
-Los borradores no se sincronizan entre dispositivos ni se guardan en las tablas públicas de Roble; así, las notas de entrevistas y validación no quedan expuestas como parte de la ficha pública del proyecto.
+Las actividades se sincronizan en el árbol JSON de Roble, en `iniciativas/<id>/actividades`. El árbol crea la ruta al guardar la primera tarea, por lo que no se necesita crear una tabla ni una columna. Cada actividad usa una clave generada por Roble y se puede actualizar individualmente. La política de acceso del árbol debe permitir lectura y cambios únicamente a los integrantes del equipo.

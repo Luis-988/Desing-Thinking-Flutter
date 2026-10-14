@@ -1,21 +1,27 @@
-import 'dart:async';
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../../core/di/injection.dart';
+import '../../../../core/error/app_exception.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/app_snack.dart';
 import '../../../../core/widgets/initials_avatar.dart';
 import '../../domain/entities/initiative.dart';
 import '../../domain/entities/initiative_application.dart';
+import '../../domain/entities/project_activity.dart';
 import '../providers/initiatives_controller.dart';
+import '../providers/project_activities_controller.dart';
 
 void openProjectWorkspace(BuildContext context, String initiativeId) {
   Navigator.of(context).push(
     MaterialPageRoute<void>(
-      builder: (_) => ProjectWorkspacePage(initiativeId: initiativeId),
+      builder: (_) => ChangeNotifierProvider(
+        create: (_) =>
+            Injection.createProjectActivitiesController()
+              ..load(initiativeId),
+        child: ProjectWorkspacePage(initiativeId: initiativeId),
+      ),
     ),
   );
 }
@@ -30,250 +36,358 @@ class ProjectWorkspacePage extends StatefulWidget {
 }
 
 class _ProjectWorkspacePageState extends State<ProjectWorkspacePage> {
-  final Map<String, TextEditingController> _controllers = {};
-  Timer? _saveTimer;
-  int _selectedWeek = 0;
-  bool _isLoading = true;
-  bool _isSaving = false;
-  String? _saveError;
+  late DateTime _selectedDate;
 
   @override
   void initState() {
     super.initState();
-    _loadDraft();
+    _selectedDate = _dateOnly(DateTime.now());
   }
 
-  Future<void> _loadDraft() async {
-    Map<String, dynamic> saved = {};
-    try {
-      final preferences = await SharedPreferences.getInstance();
-      final raw = preferences.getString(_storageKey);
-      if (raw != null) {
-        final decoded = jsonDecode(raw);
-        if (decoded is Map<String, dynamic>) saved = decoded;
-      }
-    } catch (_) {
-      _saveError = 'No se pudo cargar el borrador de este dispositivo.';
-    }
-
-    for (final week in _weeks) {
-      for (final artifact in week.artifacts) {
-        for (final field in artifact.fields) {
-          final key = '${artifact.id}.${field.id}';
-          _controllers[key] = TextEditingController(
-            text: (saved[key] ?? '').toString(),
-          );
-        }
-      }
-    }
-    if (mounted) setState(() => _isLoading = false);
-  }
-
-  String get _storageKey => 'workspace_${widget.initiativeId}';
-
-  Future<void> _saveDraft() async {
-    _saveTimer?.cancel();
-    if (mounted) setState(() => _isSaving = true);
-    try {
-      await _persistDraft(_draftValues());
-      if (mounted) {
-        setState(() {
-          _isSaving = false;
-          _saveError = null;
-        });
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _isSaving = false;
-          _saveError = 'No se pudo guardar. Intenta de nuevo.';
-        });
-      }
-    }
-  }
-
-  Map<String, String> _draftValues() => {
-    for (final entry in _controllers.entries) entry.key: entry.value.text,
-  };
-
-  Future<void> _persistDraft(Map<String, String> values) async {
-    final preferences = await SharedPreferences.getInstance();
-    await preferences.setString(_storageKey, jsonEncode(values));
-  }
-
-  Future<void> _persistDraftOnClose() async {
-    try {
-      await _persistDraft(_draftValues());
-    } catch (_) {}
-  }
-
-  void _scheduleSave() {
-    setState(() {
-      _isSaving = true;
-      _saveError = null;
-    });
-    _saveTimer?.cancel();
-    _saveTimer = Timer(const Duration(milliseconds: 650), _saveDraft);
-  }
-
-  int get _completedArtifacts =>
-      _weeks.expand((week) => week.artifacts).where(_hasContent).length;
-
-  bool _hasContent(WorkspaceArtifact artifact) => artifact.fields.any((field) {
-    return _controllers['${artifact.id}.${field.id}']?.text.trim().isNotEmpty ??
-        false;
-  });
-
-  @override
-  void dispose() {
-    _saveTimer?.cancel();
-    unawaited(_persistDraftOnClose());
-    for (final controller in _controllers.values) {
-      controller.dispose();
-    }
-    super.dispose();
-  }
+  DateTime get _selectedWeek => _weekStart(_selectedDate);
 
   @override
   Widget build(BuildContext context) {
     final initiatives = context.watch<InitiativesController>();
+    final activities = context.watch<ProjectActivitiesController>();
     final initiative = initiatives.initiativeById(widget.initiativeId);
+
     if (initiative == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Espacio de trabajo')),
-        body: const Center(child: Text('Este proyecto ya no está disponible.')),
+        appBar: AppBar(title: const Text('Ruta de trabajo')),
+        body: const Center(child: Text('Esta iniciativa ya no está disponible.')),
       );
     }
 
-    final accepted = initiatives.acceptedMembersFor(initiative.id);
-    final totalArtifacts = _weeks.fold<int>(
-      0,
-      (total, week) => total + week.artifacts.length,
-    );
+    final acceptedMembers = initiatives.acceptedMembersFor(initiative.id);
+    final isLeader = initiative.isMine;
+    final isTeamMember =
+        isLeader || acceptedMembers.any((member) => member.isMine);
+    if (!isTeamMember) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Ruta de trabajo')),
+        body: const Center(
+          child: Text('Esta ruta solo está disponible para el equipo del proyecto.'),
+        ),
+      );
+    }
+
+    final activitiesInWeek = activities.activities
+        .where((activity) => _weekStart(activity.dueDate) == _selectedWeek)
+        .toList()
+      ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
+    final completed = activities.activities.where((item) => item.isCompleted).length;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Espacio de trabajo'),
+        title: const Text('Ruta de trabajo'),
         actions: [
+          if (isLeader)
+            IconButton(
+              tooltip: 'Añadir actividad',
+              onPressed: () => _addActivity(initiative, activities),
+              icon: const Icon(Icons.add_task),
+            ),
           IconButton(
-            tooltip: 'Guardar avances',
-            onPressed: _isLoading ? null : _saveDraft,
-            icon: const Icon(Icons.save_outlined),
+            tooltip: 'Actualizar actividades',
+            onPressed: activities.isLoading
+                ? null
+                : () => activities.load(initiative.id),
+            icon: const Icon(Icons.refresh),
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+      body: RefreshIndicator(
+        onRefresh: () => activities.load(initiative.id),
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+          children: [
+            Text(initiative.title, style: AppText.screenTitle),
+            const SizedBox(height: 6),
+            Text(
+              '${activities.activities.length} actividades · $completed realizadas',
+              style: AppText.caption,
+            ),
+            const SizedBox(height: 20),
+            _TeamSection(
+              initiative: initiative,
+              members: acceptedMembers,
+            ),
+            const SizedBox(height: 24),
+            Row(
               children: [
-                _ProjectHeading(
-                  initiative: initiative,
-                  completed: _completedArtifacts,
-                  total: totalArtifacts,
+                Expanded(
+                  child: Text('Calendario del proyecto', style: AppText.sectionTitle),
                 ),
-                const SizedBox(height: 24),
-                _TeamSection(initiative: initiative, members: accepted),
-                const SizedBox(height: 24),
-                Text('Ruta de trabajo', style: AppText.sectionTitle),
-                const SizedBox(height: 12),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      for (var index = 0; index < _weeks.length; index++)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: ChoiceChip(
-                            label: Text('Semana ${index + 1}'),
-                            selected: _selectedWeek == index,
-                            onSelected: (_) =>
-                                setState(() => _selectedWeek = index),
-                          ),
-                        ),
-                    ],
-                  ),
+                IconButton(
+                  tooltip: 'Semana anterior',
+                  onPressed: () => _moveWeek(-1),
+                  icon: const Icon(Icons.chevron_left),
                 ),
-                const SizedBox(height: 16),
-                _WeekContent(
-                  week: _weeks[_selectedWeek],
-                  controllers: _controllers,
-                  onChanged: _scheduleSave,
-                  hasContent: _hasContent,
+                IconButton(
+                  tooltip: 'Semana siguiente',
+                  onPressed: () => _moveWeek(1),
+                  icon: const Icon(Icons.chevron_right),
                 ),
               ],
             ),
-      bottomNavigationBar: _isLoading
-          ? null
-          : SafeArea(
-              minimum: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      _saveError ??
-                          (_isSaving
-                              ? 'Guardando en este dispositivo…'
-                              : 'Avances guardados en este dispositivo'),
-                      style: AppText.caption.copyWith(
-                        color: _saveError == null
-                            ? AppColors.muted
-                            : AppColors.dangerFg,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  FilledButton.icon(
-                    onPressed: _saveDraft,
-                    icon: const Icon(Icons.save_outlined),
-                    label: const Text('Guardar'),
-                  ),
-                ],
+            const SizedBox(height: 4),
+            Card(
+              clipBehavior: Clip.antiAlias,
+              child: CalendarDatePicker(
+                initialDate: _selectedDate,
+                firstDate: DateTime(2020),
+                lastDate: DateTime(2100),
+                onDateChanged: (date) =>
+                    setState(() => _selectedDate = _dateOnly(date)),
               ),
             ),
+            const SizedBox(height: 18),
+            Text(
+              'Semana ${_formatDate(_selectedWeek)} – ${_formatDate(_selectedWeek.add(const Duration(days: 6)))}',
+              style: AppText.sectionTitle,
+            ),
+            const SizedBox(height: 10),
+            if (activities.isLoading)
+              const Padding(
+                padding: EdgeInsets.all(24),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (activities.error != null)
+              _LoadError(
+                message: activities.error!,
+                onRetry: () => activities.load(initiative.id),
+              )
+            else if (activitiesInWeek.isEmpty)
+              _EmptyWeek(isLeader: isLeader)
+            else
+              for (final activity in activitiesInWeek)
+                _ActivityCard(
+                  activity: activity,
+                  isTeamMember: isTeamMember,
+                  isLeader: isLeader,
+                  onChanged: (isCompleted) =>
+                      _setCompleted(activities, activity, isCompleted),
+                  onEdit: () =>
+                      _editActivity(initiative, activities, activity),
+                  onDelete: () =>
+                      _deleteActivity(initiative, activities, activity),
+                ),
+          ],
+        ),
+      ),
     );
+  }
+
+  void _moveWeek(int amount) {
+    setState(() {
+      _selectedDate = _selectedDate.add(Duration(days: amount * 7));
+    });
+  }
+
+  Future<void> _addActivity(
+    Initiative initiative,
+    ProjectActivitiesController controller,
+  ) async {
+    final activity = await showDialog<ProjectActivity>(
+      context: context,
+      builder: (_) => _AddActivityDialog(initiativeId: initiative.id),
+    );
+    if (activity == null || !mounted) return;
+    try {
+      await controller.create(activity, isLeader: initiative.isMine);
+      setState(() => _selectedDate = _dateOnly(activity.dueDate));
+      if (!mounted) return;
+      showAppSnack(context, 'Actividad añadida al calendario.');
+    } catch (error) {
+      if (mounted) showAppSnack(context, messageOf(error));
+    }
+  }
+
+  Future<void> _editActivity(
+    Initiative initiative,
+    ProjectActivitiesController controller,
+    ProjectActivity activity,
+  ) async {
+    final updated = await showDialog<ProjectActivity>(
+      context: context,
+      builder: (_) => _AddActivityDialog(
+        initiativeId: initiative.id,
+        activity: activity,
+      ),
+    );
+    if (updated == null || !mounted) return;
+    try {
+      await controller.update(updated, isLeader: initiative.isMine);
+      setState(() => _selectedDate = _dateOnly(updated.dueDate));
+      if (mounted) showAppSnack(context, 'Actividad actualizada.');
+    } catch (error) {
+      if (mounted) showAppSnack(context, messageOf(error));
+    }
+  }
+
+  Future<void> _deleteActivity(
+    Initiative initiative,
+    ProjectActivitiesController controller,
+    ProjectActivity activity,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Eliminar actividad'),
+        content: Text('¿Quieres eliminar "${activity.title}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await controller.delete(activity, isLeader: initiative.isMine);
+      if (mounted) showAppSnack(context, 'Actividad eliminada.');
+    } catch (error) {
+      if (mounted) showAppSnack(context, messageOf(error));
+    }
+  }
+
+  Future<void> _setCompleted(
+    ProjectActivitiesController controller,
+    ProjectActivity activity,
+    bool isCompleted,
+  ) async {
+    try {
+      await controller.setCompleted(
+        activity,
+        isCompleted,
+        isTeamMember: true,
+      );
+      if (mounted) {
+        showAppSnack(
+          context,
+          isCompleted ? 'Actividad marcada como realizada.' : 'Actividad reabierta.',
+        );
+      }
+    } catch (error) {
+      if (mounted) showAppSnack(context, messageOf(error));
+    }
   }
 }
 
-class _ProjectHeading extends StatelessWidget {
-  final Initiative initiative;
-  final int completed;
-  final int total;
+class _AddActivityDialog extends StatefulWidget {
+  final String initiativeId;
+  final ProjectActivity? activity;
 
-  const _ProjectHeading({
-    required this.initiative,
-    required this.completed,
-    required this.total,
-  });
+  const _AddActivityDialog({required this.initiativeId, this.activity});
+
+  @override
+  State<_AddActivityDialog> createState() => _AddActivityDialogState();
+}
+
+class _AddActivityDialogState extends State<_AddActivityDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _titleController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  late DateTime _dueDate;
+
+  @override
+  void initState() {
+    super.initState();
+    final activity = widget.activity;
+    _titleController.text = activity?.title ?? '';
+    _descriptionController.text = activity?.description ?? '';
+    _dueDate = _dateOnly(activity?.dueDate ?? DateTime.now());
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _selectDate() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _dueDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+      helpText: 'Selecciona la fecha límite de la actividad',
+    );
+    if (date != null) setState(() => _dueDate = _dateOnly(date));
+  }
+
+  void _save() {
+    if (!_formKey.currentState!.validate()) return;
+    Navigator.of(context).pop(
+      ProjectActivity(
+        id: widget.activity?.id ?? '',
+        initiativeId: widget.initiativeId,
+        title: _titleController.text.trim(),
+        description: _descriptionController.text.trim(),
+        dueDate: _dueDate,
+        isCompleted: widget.activity?.isCompleted ?? false,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'EQUIPO COMPLETO · PROYECTO EN MARCHA',
-          style: AppText.label,
-        ),
-        const SizedBox(height: 8),
-        Text(initiative.title, style: AppText.screenTitle),
-        const SizedBox(height: 14),
-        Row(
-          children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: total == 0 ? 0 : completed / total,
-                  minHeight: 7,
-                  backgroundColor: AppColors.secondary,
-                  color: AppColors.orange,
+    return AlertDialog(
+      title: Text(widget.activity == null ? 'Nueva actividad' : 'Editar actividad'),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _titleController,
+                autofocus: true,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: const InputDecoration(labelText: 'Actividad'),
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? 'Escribe el nombre de la actividad.'
+                    : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _descriptionController,
+                minLines: 2,
+                maxLines: 4,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: const InputDecoration(
+                  labelText: 'Descripción (opcional)',
+                  alignLabelWithHint: true,
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Text('$completed de $total entregables', style: AppText.caption),
-          ],
+              const SizedBox(height: 8),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.calendar_today_outlined),
+                title: const Text('Fecha límite'),
+                subtitle: Text(_formatDate(_dueDate)),
+                onTap: _selectDate,
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: _save,
+          child: Text(widget.activity == null ? 'Añadir' : 'Guardar cambios'),
         ),
       ],
     );
@@ -287,29 +401,27 @@ class _TeamSection extends StatelessWidget {
   const _TeamSection({required this.initiative, required this.members});
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(child: Text('Equipo', style: AppText.sectionTitle)),
-            Text('${members.length + 1} integrantes', style: AppText.caption),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: [
-            _MemberLabel(name: initiative.leader, role: 'Líder'),
-            for (final member in members)
-              _MemberLabel(name: member.applicantName, role: member.roleName),
-          ],
-        ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        children: [
+          Expanded(child: Text('Equipo', style: AppText.sectionTitle)),
+          Text('${members.length + 1} integrantes', style: AppText.caption),
+        ],
+      ),
+      const SizedBox(height: 12),
+      Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: [
+          _MemberLabel(name: initiative.leader, role: 'Líder'),
+          for (final member in members)
+            _MemberLabel(name: member.applicantName, role: member.roleName),
+        ],
+      ),
+    ],
+  );
 }
 
 class _MemberLabel extends StatelessWidget {
@@ -319,519 +431,166 @@ class _MemberLabel extends StatelessWidget {
   const _MemberLabel({required this.name, required this.role});
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        InitialsAvatar(name: name, radius: 18),
-        const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              name,
-              style: AppText.body.copyWith(fontWeight: FontWeight.w700),
-            ),
-            Text(role, style: AppText.caption),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _WeekContent extends StatelessWidget {
-  final WorkspaceWeek week;
-  final Map<String, TextEditingController> controllers;
-  final VoidCallback onChanged;
-  final bool Function(WorkspaceArtifact) hasContent;
-
-  const _WeekContent({
-    required this.week,
-    required this.controllers,
-    required this.onChanged,
-    required this.hasContent,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(week.title, style: AppText.sectionTitle),
-        const SizedBox(height: 4),
-        Text(week.goal, style: AppText.body),
-        const SizedBox(height: 16),
-        for (final artifact in week.artifacts) ...[
-          Row(
-            children: [
-              Expanded(child: Text(artifact.title, style: AppText.bodyLarge)),
-              Icon(
-                hasContent(artifact)
-                    ? Icons.check_circle
-                    : Icons.circle_outlined,
-                size: 18,
-                color: hasContent(artifact)
-                    ? AppColors.successFg
-                    : AppColors.muted,
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          for (final field in artifact.fields) ...[
-            Text(field.label, style: AppText.label),
-            const SizedBox(height: 5),
-            TextField(
-              controller: controllers['${artifact.id}.${field.id}'],
-              minLines: 2,
-              maxLines: 5,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: InputDecoration(
-                hintText: field.hint,
-                alignLabelWithHint: true,
-                filled: true,
-                fillColor: AppColors.surface,
-                border: const OutlineInputBorder(),
-                contentPadding: const EdgeInsets.all(12),
-              ),
-              onChanged: (_) => onChanged(),
-            ),
-            const SizedBox(height: 12),
-          ],
-          const Divider(height: 28),
-        ],
-      ],
-    );
-  }
-}
-
-class WorkspaceWeek {
-  final String title;
-  final String goal;
-  final List<WorkspaceArtifact> artifacts;
-
-  const WorkspaceWeek(this.title, this.goal, this.artifacts);
-}
-
-class WorkspaceArtifact {
-  final String id;
-  final String title;
-  final List<WorkspaceField> fields;
-
-  const WorkspaceArtifact(this.id, this.title, this.fields);
-}
-
-class WorkspaceField {
-  final String id;
-  final String label;
-  final String hint;
-
-  const WorkspaceField(this.id, this.label, this.hint);
-}
-
-const _weeks = <WorkspaceWeek>[
-  WorkspaceWeek(
-    'Comprender a las personas',
-    'Investigar antes de proponer soluciones.',
-    [
-      WorkspaceArtifact('entrevista_1', 'Entrevista 1', [
-        WorkspaceField(
-          'objetivo',
-          'Objetivo y perfil',
-          '¿Por qué eligieron a esta persona y qué esperan aprender?',
-        ),
-        WorkspaceField(
-          'contexto',
-          'Contexto',
-          'Fecha, lugar o medio y duración.',
-        ),
-        WorkspaceField(
-          'preguntas',
-          'Preguntas realizadas',
-          'Anota las preguntas principales de la conversación.',
-        ),
-        WorkspaceField(
-          'respuestas',
-          'Respuestas y frases clave',
-          'Resume respuestas y registra citas sin datos identificables.',
-        ),
-        WorkspaceField(
-          'necesidades',
-          'Necesidades y dificultades',
-          '¿Qué necesita la persona y qué obstáculos enfrenta?',
-        ),
-        WorkspaceField(
-          'hallazgos',
-          'Hallazgos y conclusión',
-          '¿Qué sorprendió al equipo y qué aprendieron?',
-        ),
-      ]),
-      WorkspaceArtifact('entrevista_2', 'Entrevista 2', [
-        WorkspaceField(
-          'objetivo',
-          'Objetivo y perfil',
-          '¿Por qué eligieron a esta persona y qué esperan aprender?',
-        ),
-        WorkspaceField(
-          'contexto',
-          'Contexto',
-          'Fecha, lugar o medio y duración.',
-        ),
-        WorkspaceField(
-          'preguntas',
-          'Preguntas realizadas',
-          'Anota las preguntas principales de la conversación.',
-        ),
-        WorkspaceField(
-          'respuestas',
-          'Respuestas y frases clave',
-          'Resume respuestas y registra citas sin datos identificables.',
-        ),
-        WorkspaceField(
-          'necesidades',
-          'Necesidades y dificultades',
-          '¿Qué necesita la persona y qué obstáculos enfrenta?',
-        ),
-        WorkspaceField(
-          'hallazgos',
-          'Hallazgos y conclusión',
-          '¿Qué sorprendió al equipo y qué aprendieron?',
-        ),
-      ]),
-      WorkspaceArtifact('observacion', 'Historia de innovación y observación', [
-        WorkspaceField(
-          'iniciativa',
-          'Iniciativa y persona',
-          'Nombre del proyecto, seudónimo y rol.',
-        ),
-        WorkspaceField(
-          'origen',
-          'Origen y problema',
-          '¿Cómo nació la idea y qué problema busca resolver?',
-        ),
-        WorkspaceField(
-          'validacion',
-          'Validación y aprendizajes',
-          '¿Cómo supieron que el problema existía? ¿Qué aprendieron?',
-        ),
-        WorkspaceField(
-          'equipo',
-          'Equipo y retos',
-          '¿Cómo se formó el equipo y cuáles han sido sus retos?',
-        ),
-        WorkspaceField(
-          'oportunidades',
-          'Oportunidades y reflexión',
-          '¿Qué harían distinto y qué apoyo necesita el proyecto?',
-        ),
-      ]),
-    ],
-  ),
-  WorkspaceWeek(
-    'Definir el problema',
-    'Conectar los hallazgos con una necesidad prioritaria.',
-    [
-      WorkspaceArtifact('mapa_insights', 'Mapa de insights', [
-        WorkspaceField(
-          'usuarios',
-          'Usuarios analizados',
-          '¿Qué perfiles de usuario revisaron?',
-        ),
-        WorkspaceField(
-          'hallazgos',
-          'Hallazgos repetidos',
-          '¿Qué observamos y por qué importa?',
-        ),
-        WorkspaceField(
-          'tensiones',
-          'Tensiones o contradicciones',
-          '¿Qué prioridades difieren entre usuarios?',
-        ),
-        WorkspaceField(
-          'necesidades',
-          'Necesidades detectadas',
-          'Completa: Los usuarios necesitan…',
-        ),
-        WorkspaceField(
-          'barreras',
-          'Barreras actuales',
-          '¿Qué impide resolver bien el problema hoy?',
-        ),
-        WorkspaceField(
-          'insight',
-          'Insight principal',
-          'Conecta comportamiento, necesidad y oportunidad.',
-        ),
-      ]),
-      WorkspaceArtifact('pov', 'Punto de vista del equipo (POV)', [
-        WorkspaceField(
-          'usuario',
-          'Usuario principal',
-          '¿Quién es y qué caracteriza su contexto?',
-        ),
-        WorkspaceField(
-          'objetivo',
-          'Qué intenta lograr',
-          '¿Cuál es su meta principal?',
-        ),
-        WorkspaceField(
-          'dificultad',
-          'Qué le cuesta hoy',
-          'Describe la dificultad concreta.',
-        ),
-        WorkspaceField(
-          'necesidad',
-          'Necesidad prioritaria',
-          '¿Qué necesita resolver primero?',
-        ),
-        WorkspaceField(
-          'insight',
-          'Insight clave',
-          '¿Qué comprendieron que antes no veían?',
-        ),
-        WorkspaceField(
-          'declaracion',
-          'Declaración POV',
-          'Usuario necesita… porque…',
-        ),
-        WorkspaceField(
-          'criterios',
-          'Criterios de solución',
-          '¿Qué debería permitir una buena solución?',
-        ),
-        WorkspaceField(
-          'fuera',
-          'Fuera de alcance',
-          '¿Qué no resolverán en esta etapa?',
-        ),
-      ]),
-    ],
-  ),
-  WorkspaceWeek(
-    'Idear y elegir una dirección',
-    'Explorar alternativas antes de seleccionar un concepto.',
-    [
-      WorkspaceArtifact('ideacion', 'Ideación y flujos prioritarios', [
-        WorkspaceField(
-          'problema',
-          'Recordatorio del problema',
-          'Resume el POV que guía esta ideación.',
-        ),
-        WorkspaceField('pregunta', 'Pregunta guía', '¿Cómo podríamos…?'),
-        WorkspaceField(
-          'alternativas',
-          'Flujos posibles',
-          'Anota las alternativas de solución que exploraron.',
-        ),
-        WorkspaceField(
-          'priorizados',
-          'Flujos priorizados',
-          '¿Qué quiere lograr el usuario en cada flujo?',
-        ),
-        WorkspaceField(
-          'razones',
-          'Importancia y riesgos',
-          '¿Por qué priorizaron estos flujos y qué pasaría si fallan?',
-        ),
-      ]),
-      WorkspaceArtifact('prototipos', 'Prototipos por flujo', [
-        WorkspaceField(
-          'objetivo',
-          'Objetivo del flujo',
-          '¿Qué quiere lograr la persona?',
-        ),
-        WorkspaceField(
-          'version_a',
-          'Versión A',
-          'Describe los pasos y pantallas clave de la primera alternativa.',
-        ),
-        WorkspaceField(
-          'version_b',
-          'Versión B',
-          'Describe los pasos y pantallas clave de la segunda alternativa.',
-        ),
-        WorkspaceField(
-          'evidencia',
-          'Evidencia exploratoria',
-          '¿Con quién probaron y qué reacción generó cada versión?',
-        ),
-        WorkspaceField(
-          'seleccion',
-          'Versión seleccionada',
-          '¿Cuál avanza y por qué?',
-        ),
-        WorkspaceField(
-          'aprendizajes',
-          'Aprendizajes y dudas',
-          '¿Qué funcionó y qué necesitan seguir validando?',
-        ),
-      ]),
-      WorkspaceArtifact('seleccion_concepto', 'Selección de concepto', [
-        WorkspaceField(
-          'flujos',
-          'Flujos seleccionados',
-          'Registra los flujos que decidieron trabajar.',
-        ),
-        WorkspaceField(
-          'prioridad',
-          'Razones de prioridad',
-          '¿Por qué merece prioridad cada flujo?',
-        ),
-        WorkspaceField(
-          'validacion',
-          'Validación exploratoria',
-          'Participantes, aprendizajes y versiones elegidas.',
-        ),
-        WorkspaceField(
-          'hipotesis',
-          'Hipótesis y riesgos',
-          '¿Qué esperan validar y qué sigue sin estar claro?',
-        ),
-      ]),
-    ],
-  ),
-  WorkspaceWeek(
-    'Prototipar y probar',
-    'Integrar los flujos y observar cómo los usan las personas.',
-    [
-      WorkspaceArtifact('guion_prueba', 'Guion de prueba con usuarios', [
-        WorkspaceField(
-          'objetivo',
-          'Objetivo de la prueba',
-          '¿Qué aspectos de la experiencia quieren validar?',
-        ),
-        WorkspaceField(
-          'muestra',
-          'Tipo y cantidad de participantes',
-          '¿A quiénes invitarán y cuántas personas?',
-        ),
-        WorkspaceField(
-          'escenario',
-          'Escenario',
-          'Escribe el contexto que presentarás al participante.',
-        ),
-        WorkspaceField(
-          'tareas',
-          'Tareas y preguntas',
-          'Define entre tres y cinco tareas observables.',
-        ),
-        WorkspaceField(
-          'observacion',
-          'Qué observar y registrar',
-          'Dudas, errores, comentarios y evidencia.',
-        ),
-        WorkspaceField(
-          'exito',
-          'Criterios de éxito',
-          '¿Qué debe ocurrir para considerar que funciona?',
-        ),
-        WorkspaceField(
-          'resultados',
-          'Aplicación y resultados',
-          '¿Cuántas pruebas realizaron y qué ocurrió?',
-        ),
-      ]),
-      WorkspaceArtifact(
-        'prototipo_integrado',
-        'Planeación del prototipo integrado',
-        [
-          WorkspaceField(
-            'flujos',
-            'Flujos que integrarán',
-            'Describe los flujos aprobados y sus versiones.',
-          ),
-          WorkspaceField(
-            'objetivo',
-            'Objetivo y alcance',
-            '¿Qué comprobará el prototipo y qué queda fuera?',
-          ),
-          WorkspaceField(
-            'pantallas',
-            'Pantallas y conexiones',
-            'Enumera las pantallas y cómo se conectan.',
-          ),
-          WorkspaceField(
-            'herramienta',
-            'Herramienta y evidencia',
-            '¿Dónde se construye y dónde se consulta?',
-          ),
-          WorkspaceField(
-            'hipotesis',
-            'Hipótesis a validar',
-            '¿Qué creen que ocurrirá cuando alguien use el prototipo?',
-          ),
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      InitialsAvatar(name: name, radius: 18),
+      const SizedBox(width: 8),
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(name, style: AppText.body.copyWith(fontWeight: FontWeight.w700)),
+          Text(role, style: AppText.caption),
         ],
       ),
     ],
-  ),
-  WorkspaceWeek(
-    'Iterar y preparar la implementación',
-    'Convertir los resultados de validación en decisiones.',
-    [
-      WorkspaceArtifact('plan_iteracion', 'Plan de iteración', [
-        WorkspaceField(
-          'cambios',
-          'Qué debemos cambiar',
-          'Anota los ajustes identificados tras las pruebas.',
+  );
+}
+
+class _ActivityCard extends StatelessWidget {
+  final ProjectActivity activity;
+  final bool isTeamMember;
+  final bool isLeader;
+  final ValueChanged<bool> onChanged;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _ActivityCard({
+    required this.activity,
+    required this.isTeamMember,
+    required this.isLeader,
+    required this.onChanged,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) => Card(
+    margin: const EdgeInsets.only(bottom: 10),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Checkbox(
+            value: activity.isCompleted,
+            onChanged: isTeamMember ? (value) => onChanged(value ?? false) : null,
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 12, bottom: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    activity.title,
+                    style: activity.isCompleted
+                        ? AppText.body.copyWith(
+                            decoration: TextDecoration.lineThrough,
+                            color: AppColors.muted,
+                          )
+                        : AppText.body.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Fecha límite: ${_formatDate(activity.dueDate)}',
+                    style: AppText.caption,
+                  ),
+                  if (activity.description.trim().isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(activity.description, style: AppText.body),
+                  ],
+                  if (activity.isCompleted)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 4),
+                      child: Text(
+                        'Realizada',
+                        style: TextStyle(color: AppColors.successFg),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          if (isLeader)
+            PopupMenuButton<String>(
+              tooltip: 'Opciones de actividad',
+              onSelected: (value) {
+                if (value == 'edit') onEdit();
+                if (value == 'delete') onDelete();
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(
+                  value: 'edit',
+                  child: ListTile(
+                    leading: Icon(Icons.edit_outlined),
+                    title: Text('Editar'),
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'delete',
+                  child: ListTile(
+                    leading: Icon(Icons.delete_outline),
+                    title: Text('Eliminar'),
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _EmptyWeek extends StatelessWidget {
+  final bool isLeader;
+
+  const _EmptyWeek({required this.isLeader});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 24),
+    child: Column(
+      children: [
+        const Icon(Icons.event_note_outlined, size: 36, color: AppColors.muted),
+        const SizedBox(height: 8),
+        Text(
+          isLeader
+              ? 'No hay actividades esta semana. Añade una para organizar el trabajo.'
+              : 'El líder aún no ha añadido actividades para esta semana.',
+          textAlign: TextAlign.center,
+          style: AppText.body,
         ),
-        WorkspaceField(
-          'prioridades',
-          'Prioridades',
-          'Separa cambios urgentes, importantes y futuros.',
-        ),
-        WorkspaceField(
-          'decision',
-          'Decisión del equipo',
-          '¿Mantendrán, ajustarán o replantearán la propuesta?',
-        ),
-        WorkspaceField(
-          'proximo',
-          'Próximo paso',
-          '¿Qué hará el equipo en la siguiente etapa?',
-        ),
-        WorkspaceField(
-          'preparacion',
-          'Preparación para implementar',
-          '¿Qué está listo y qué falta resolver?',
-        ),
-      ]),
-      WorkspaceArtifact('resultados_validacion', 'Resultados de validación', [
-        WorkspaceField(
-          'pruebas',
-          'Pruebas realizadas',
-          'Participantes, perfiles y fechas.',
-        ),
-        WorkspaceField(
-          'prototipo',
-          'Qué se probó',
-          'Describe la versión y los cambios incorporados.',
-        ),
-        WorkspaceField(
-          'hallazgos',
-          'Hallazgos principales',
-          'Registra los tres aprendizajes más importantes.',
-        ),
-        WorkspaceField(
-          'dificultades',
-          'Dificultades y reacciones',
-          '¿Dónde hubo dudas y qué valoraron las personas?',
-        ),
-        WorkspaceField(
-          'citas',
-          'Citas y evidencia',
-          'Anota frases sin información que identifique a participantes.',
-        ),
-        WorkspaceField(
-          'hipotesis',
-          'Hipótesis',
-          '¿Cuáles se confirmaron y cuáles no?',
-        ),
-        WorkspaceField(
-          'comparacion',
-          'Comparación y problemas abiertos',
-          '¿Qué mejoró y qué necesita otra iteración?',
-        ),
-      ]),
+      ],
+    ),
+  );
+}
+
+class _LoadError extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _LoadError({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      Text(message, style: AppText.body.copyWith(color: AppColors.dangerFg)),
+      TextButton.icon(
+        onPressed: onRetry,
+        icon: const Icon(Icons.refresh),
+        label: const Text('Reintentar'),
+      ),
     ],
-  ),
-];
+  );
+}
+
+DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
+
+DateTime _weekStart(DateTime date) {
+  final day = _dateOnly(date);
+  return day.subtract(Duration(days: day.weekday - DateTime.monday));
+}
+
+String _formatDate(DateTime date) =>
+    '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';

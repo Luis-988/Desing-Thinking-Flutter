@@ -13,7 +13,9 @@ import 'package:desing_thinking_flutter/features/auth/domain/repositories/auth_r
 import 'package:desing_thinking_flutter/features/initiatives/data/models/initiative_model.dart';
 import 'package:desing_thinking_flutter/features/initiatives/domain/entities/initiative.dart';
 import 'package:desing_thinking_flutter/features/initiatives/domain/entities/initiative_application.dart';
+import 'package:desing_thinking_flutter/features/initiatives/domain/entities/project_activity.dart';
 import 'package:desing_thinking_flutter/features/initiatives/domain/repositories/initiative_repository.dart';
+import 'package:desing_thinking_flutter/features/initiatives/domain/repositories/project_activity_repository.dart';
 import 'package:desing_thinking_flutter/features/initiatives/presentation/providers/initiatives_controller.dart';
 import 'package:desing_thinking_flutter/main.dart';
 
@@ -149,6 +151,41 @@ class FakeInitiativeRepository implements InitiativeRepository {
   ) async {}
 }
 
+class FakeProjectActivityRepository implements ProjectActivityRepository {
+  final List<ProjectActivity> activities = [];
+  var _nextId = 1;
+
+  @override
+  Future<List<ProjectActivity>> getActivities(String initiativeId) async =>
+      activities
+          .where((activity) => activity.initiativeId == initiativeId)
+          .toList();
+
+  @override
+  Future<ProjectActivity> createActivity(ProjectActivity activity) async {
+    final saved = ProjectActivity(
+      id: 'activity-${_nextId++}',
+      initiativeId: activity.initiativeId,
+      title: activity.title,
+      description: activity.description,
+      dueDate: activity.dueDate,
+    );
+    activities.add(saved);
+    return saved;
+  }
+
+  @override
+  Future<void> updateActivity(ProjectActivity activity) async {
+    final index = activities.indexWhere((item) => item.id == activity.id);
+    if (index != -1) activities[index] = activity;
+  }
+
+  @override
+  Future<void> deleteActivity(ProjectActivity activity) async {
+    activities.removeWhere((item) => item.id == activity.id);
+  }
+}
+
 /// Las listas de Flutter solo construyen lo que cabe en pantalla. Con una
 /// pantalla alta de prueba, todas las tarjetas quedan construidas.
 void useTallScreen(WidgetTester tester) {
@@ -161,6 +198,7 @@ InitiativesController buildController(FakeInitiativeRepository repository) {
   Injection.init(
     authRepository: FakeAuthRepository(),
     initiativeRepository: repository,
+    projectActivityRepository: FakeProjectActivityRepository(),
   );
   return Injection.createInitiativesController();
 }
@@ -406,6 +444,7 @@ void main() {
       Injection.init(
         authRepository: FakeAuthRepository(),
         initiativeRepository: FakeInitiativeRepository(),
+        projectActivityRepository: FakeProjectActivityRepository(),
       );
     });
 
@@ -454,6 +493,7 @@ void main() {
             status: ApplicationStatus.accepted,
           ),
         );
+        final projectActivities = FakeProjectActivityRepository();
         Injection.init(
           authRepository: FakeAuthRepository(
             restoredUser: const ProfileUser(
@@ -464,6 +504,7 @@ void main() {
             ),
           ),
           initiativeRepository: repository,
+          projectActivityRepository: projectActivities,
         );
 
         await tester.pumpWidget(
@@ -476,13 +517,106 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(tester.takeException(), isNull);
-        expect(
-          find.text('EQUIPO COMPLETO · PROYECTO EN MARCHA'),
-          findsOneWidget,
-        );
+        expect(find.text('Ruta de trabajo'), findsOneWidget);
         expect(find.text('Ana Torres'), findsOneWidget);
+        expect(find.text('Comprender a las personas'), findsNothing);
+        expect(find.byTooltip('Añadir actividad'), findsOneWidget);
+
+        await tester.tap(find.byTooltip('Añadir actividad'));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byType(TextFormField).first,
+          'Preparar entrevistas',
+        );
+        await tester.tap(find.text('Añadir').last);
+        await tester.pumpAndSettle();
+
+        expect(find.text('Preparar entrevistas'), findsOneWidget);
+        expect(projectActivities.activities, hasLength(1));
+        expect(find.text('Entrevista 1'), findsNothing);
+
+        await tester.tap(find.byTooltip('Opciones de actividad').first);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Editar'));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byType(TextFormField).first,
+          'Preparar entrevista con usuarios',
+        );
+        await tester.tap(find.text('Guardar cambios'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Preparar entrevista con usuarios'), findsOneWidget);
+        expect(
+          projectActivities.activities.single.title,
+          'Preparar entrevista con usuarios',
+        );
+
+        await tester.tap(find.byType(Checkbox).first);
+        await tester.pumpAndSettle();
+        expect(find.text('Realizada'), findsOneWidget);
+        expect(projectActivities.activities.single.isCompleted, isTrue);
+
+        await tester.tap(find.byTooltip('Opciones de actividad').first);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Eliminar'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Eliminar').last);
+        await tester.pumpAndSettle();
+
+        expect(projectActivities.activities, isEmpty);
+        expect(find.text('Preparar entrevista con usuarios'), findsNothing);
       },
     );
+
+    testWidgets('un integrante aceptado puede abrir y ver la ruta', (
+      tester,
+    ) async {
+      useTallScreen(tester);
+      final repository = FakeInitiativeRepository();
+      repository.applications.add(
+        InitiativeApplication(
+          id: 'accepted-member',
+          initiativeId: 'unisports',
+          applicantName: 'Ana Torres',
+          roleName: 'Diseñador UX/UI',
+          message: 'Quiero aportar.',
+          status: ApplicationStatus.accepted,
+          isMine: true,
+        ),
+      );
+      Injection.init(
+        authRepository: FakeAuthRepository(
+          restoredUser: const ProfileUser(
+            name: 'Ana Torres',
+            email: 'ana@example.com',
+            program: 'Ingeniería',
+            semester: '5',
+          ),
+        ),
+        initiativeRepository: repository,
+        projectActivityRepository: FakeProjectActivityRepository(),
+      );
+
+      await tester.pumpWidget(
+        const UninorteInnovacionApp(useGoogleFonts: false),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Explorar').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Unisports').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Ver ruta de trabajo'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Ruta de trabajo'), findsOneWidget);
+      expect(
+        find.text('El líder aún no ha añadido actividades para esta semana.'),
+        findsOneWidget,
+      );
+      expect(find.text('Añadir actividad'), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
 
     testWidgets('Explorar lista las iniciativas', (tester) async {
       useTallScreen(tester);
@@ -544,6 +678,7 @@ void main() {
           ),
         ),
         initiativeRepository: FakeInitiativeRepository(),
+        projectActivityRepository: FakeProjectActivityRepository(),
       );
       await tester.pumpWidget(
         const UninorteInnovacionApp(useGoogleFonts: false),

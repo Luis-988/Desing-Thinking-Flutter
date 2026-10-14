@@ -14,13 +14,20 @@ class InitiativeCard extends StatelessWidget {
 
   /// Acciones extra para el líder (editar, destacar, eliminar).
   final Widget? ownerActions;
+  final Widget? footerAction;
 
-  const InitiativeCard({super.key, required this.initiative, this.ownerActions});
+  const InitiativeCard({
+    super.key,
+    required this.initiative,
+    this.ownerActions,
+    this.footerAction,
+  });
 
   @override
   Widget build(BuildContext context) {
     final roles = initiative.roles;
-    final isAlmostFull = initiative.isActive &&
+    final isAlmostFull =
+        initiative.isActive &&
         initiative.openSlots > 0 &&
         initiative.openSlots <= 1;
     return Card(
@@ -35,7 +42,10 @@ class InitiativeCard extends StatelessWidget {
               Row(
                 children: [
                   if (initiative.isPopular)
-                    const AppTag.accent('MÁS POPULAR', icon: Icons.local_fire_department),
+                    const AppTag.accent(
+                      'MÁS POPULAR',
+                      icon: Icons.local_fire_department,
+                    ),
                   if (isAlmostFull) ...[
                     if (initiative.isPopular) const SizedBox(width: 6),
                     const AppTag.warning('ÚLTIMA PLAZA', icon: Icons.bolt),
@@ -57,7 +67,10 @@ class InitiativeCard extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: Text(initiative.title, style: AppText.cardTitle),
+                          child: Text(
+                            initiative.title,
+                            style: AppText.cardTitle,
+                          ),
                         ),
                         if (initiative.isActive) const AppTag.success('Activa'),
                       ],
@@ -130,7 +143,8 @@ class InitiativeCard extends StatelessWidget {
                         spacing: 6,
                         runSpacing: 6,
                         children: [
-                          for (final role in roles.take(3)) AppTag.violet(role.name),
+                          for (final role in roles.take(3))
+                            AppTag.violet(role.name),
                           if (roles.length > 3)
                             AppTag('+${roles.length - 3} más'),
                         ],
@@ -141,6 +155,10 @@ class InitiativeCard extends StatelessWidget {
                       onPressed: () => openInitiative(context, initiative.id),
                       child: const Text('Ver iniciativa'),
                     ),
+                    if (footerAction != null) ...[
+                      const SizedBox(height: 10),
+                      footerAction!,
+                    ],
                   ],
                 ),
               ),

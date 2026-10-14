@@ -137,17 +137,16 @@ class _PublishedTab extends StatelessWidget {
                   InitiativeCard(
                     initiative: initiative,
                     ownerActions: OwnerActions(initiative: initiative),
+                    footerAction:
+                        initiative.roles.isNotEmpty && initiative.openSlots == 0
+                        ? OutlinedButton.icon(
+                            onPressed: () =>
+                                openProjectWorkspace(context, initiative.id),
+                            icon: const Icon(Icons.play_arrow),
+                            label: const Text('Iniciar trabajo del proyecto'),
+                          )
+                        : null,
                   ),
-                  if (initiative.roles.isNotEmpty && initiative.openSlots == 0)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 10),
-                      child: OutlinedButton.icon(
-                        onPressed: () =>
-                            openProjectWorkspace(context, initiative.id),
-                        icon: const Icon(Icons.play_arrow),
-                        label: const Text('Iniciar trabajo del proyecto'),
-                      ),
-                    ),
                 ],
               ),
             ),
