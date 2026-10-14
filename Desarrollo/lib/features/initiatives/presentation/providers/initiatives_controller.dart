@@ -6,6 +6,7 @@ import '../../../../core/error/app_exception.dart';
 import '../../../auth/presentation/providers/session_controller.dart';
 import '../../domain/entities/initiative.dart';
 import '../../domain/entities/initiative_application.dart';
+import '../../domain/services/initiative_insights.dart';
 import '../../domain/usecases/create_initiative.dart';
 import '../../domain/usecases/delete_initiative.dart';
 import '../../domain/usecases/get_applications.dart';
@@ -78,13 +79,7 @@ class InitiativesController extends ChangeNotifier {
 
   /// Selección breve para Inicio basada en popularidad, actividad y plazas.
   List<Initiative> get recommendedInitiatives {
-    final recommendations = [...activeInitiatives]
-      ..sort((a, b) {
-        final scoreA = (a.isPopular ? 3 : 0) + (a.openSlots > 0 ? 2 : 0);
-        final scoreB = (b.isPopular ? 3 : 0) + (b.openSlots > 0 ? 2 : 0);
-        return scoreB.compareTo(scoreA);
-      });
-    return recommendations.take(3).toList();
+    return InitiativeInsights.recommended(_initiatives);
   }
 
   /// Las más recientes primero (Roble las devuelve en orden de creación).
@@ -113,7 +108,10 @@ class InitiativesController extends ChangeNotifier {
       .length;
 
   int get openSlotsCount =>
-      activeInitiatives.fold(0, (total, item) => total + item.openSlots);
+      InitiativeInsights.openSlotsCount(activeInitiatives);
+
+  List<RoleDemand> get roleDemand =>
+      InitiativeInsights.roleDemand(activeInitiatives);
 
   /// Categorías disponibles para intereses y tipos de proyecto.
   List<String> get categoryOptions {

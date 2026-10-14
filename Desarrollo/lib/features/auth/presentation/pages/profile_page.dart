@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/theme/theme_controller.dart';
 import '../../../../core/widgets/initials_avatar.dart';
 import '../../../../core/widgets/screen_header.dart';
 import '../../../home/presentation/providers/home_tab_controller.dart';
@@ -27,7 +28,13 @@ class ProfilePage extends StatelessWidget {
           subtitle: user == null ? 'Tu cuenta de innovación' : user.email,
         ),
         Expanded(
-          child: user == null ? const _GuestProfile() : _UserProfile(name: user.name, program: user.program, semester: user.semester),
+          child: user == null
+              ? const _GuestProfile()
+              : _UserProfile(
+                  name: user.name,
+                  program: user.program,
+                  semester: user.semester,
+                ),
         ),
       ],
     );
@@ -55,7 +62,11 @@ class _UserProfile extends StatelessWidget {
         Center(child: InitialsAvatar(name: name, radius: 40)),
         const SizedBox(height: 12),
         Center(
-          child: Text(name, style: AppText.screenTitle, textAlign: TextAlign.center),
+          child: Text(
+            name,
+            style: AppText.screenTitle,
+            textAlign: TextAlign.center,
+          ),
         ),
         const SizedBox(height: 24),
         const Text('Información académica', style: AppText.sectionTitle),
@@ -97,6 +108,29 @@ class _UserProfile extends StatelessWidget {
               trailing: '${initiatives.myInitiatives.length}',
               onTap: () =>
                   context.read<HomeTabController>().go(HomeTabs.myInitiatives),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        const Text('Preferencias', style: AppText.sectionTitle),
+        const SizedBox(height: 10),
+        _InfoCard(
+          children: [
+            Consumer<ThemeController>(
+              builder: (context, theme, _) => SwitchListTile(
+                secondary: Icon(
+                  theme.isDark
+                      ? Icons.dark_mode_outlined
+                      : Icons.light_mode_outlined,
+                  color: AppColors.navy,
+                ),
+                title: const Text('Modo oscuro'),
+                subtitle: Text(
+                  theme.isDark ? 'Tema oscuro activado' : 'Usar tema claro',
+                ),
+                value: theme.isDark,
+                onChanged: (_) => theme.toggle(),
+              ),
             ),
           ],
         ),
@@ -179,8 +213,7 @@ class _InfoCard extends StatelessWidget {
   const _InfoCard({required this.children});
 
   @override
-  Widget build(BuildContext context) =>
-      Card(child: Column(children: children));
+  Widget build(BuildContext context) => Card(child: Column(children: children));
 }
 
 class _InfoRow extends StatelessWidget {
@@ -188,7 +221,11 @@ class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
 
-  const _InfoRow({required this.icon, required this.label, required this.value});
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {

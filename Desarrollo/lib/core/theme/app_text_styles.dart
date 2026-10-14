@@ -10,39 +10,33 @@ class AppText {
   static const screenTitle = TextStyle(
     fontSize: 24,
     fontWeight: FontWeight.w700,
-    color: AppColors.ink,
     height: 1.2,
   );
 
   static const sectionTitle = TextStyle(
     fontSize: 18,
     fontWeight: FontWeight.w700,
-    color: AppColors.ink,
     height: 1.25,
   );
 
   static const cardTitle = TextStyle(
     fontSize: 18,
     fontWeight: FontWeight.w700,
-    color: AppColors.ink,
     height: 1.25,
   );
 
   static const bodyLarge = TextStyle(
     fontSize: 16,
-    color: AppColors.body,
     height: 1.55,
   );
 
   static const body = TextStyle(
     fontSize: 15,
-    color: AppColors.body,
     height: 1.5,
   );
 
   static const caption = TextStyle(
     fontSize: 13,
-    color: AppColors.muted,
     height: 1.4,
   );
 

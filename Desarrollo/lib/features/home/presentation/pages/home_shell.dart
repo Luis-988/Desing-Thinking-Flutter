@@ -36,8 +36,8 @@ class HomeShell extends StatelessWidget {
             label: 'Inicio',
           ),
           NavigationDestination(
-            icon: Icon(Icons.explore_outlined),
-            selectedIcon: Icon(Icons.explore),
+            icon: Icon(Icons.search_outlined),
+            selectedIcon: Icon(Icons.search),
             label: 'Explorar',
           ),
           NavigationDestination(

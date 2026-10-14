@@ -1,6 +1,3 @@
-// Pruebas de la app. Usan repositorios falsos (en memoria) gracias a la
-// arquitectura limpia, así no dependen de internet ni de Roble.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -361,7 +358,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.explore_outlined));
+      await tester.tap(find.byIcon(Icons.search_outlined));
       await tester.pumpAndSettle();
 
       expect(find.text('2 iniciativas activas'), findsOneWidget);

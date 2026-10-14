@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'core/di/injection.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_controller.dart';
 import 'features/auth/presentation/providers/session_controller.dart';
 import 'features/home/presentation/pages/home_shell.dart';
 import 'features/home/presentation/providers/home_tab_controller.dart';
@@ -38,14 +39,31 @@ class UninorteInnovacionApp extends StatelessWidget {
         ChangeNotifierProvider<HomeTabController>(
           create: (_) => HomeTabController(),
         ),
+        ChangeNotifierProvider<ThemeController>(
+          create: (_) => ThemeController(),
+        ),
       ],
-      child: MaterialApp(
-        title: 'Innovación Uninorte',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.light(useGoogleFonts: useGoogleFonts),
-        scrollBehavior: const _NoStretchScrollBehavior(),
-        home: const _AppRoot(),
-      ),
+      child: _ThemedApp(useGoogleFonts: useGoogleFonts),
+    );
+  }
+}
+
+class _ThemedApp extends StatelessWidget {
+  final bool useGoogleFonts;
+
+  const _ThemedApp({required this.useGoogleFonts});
+
+  @override
+  Widget build(BuildContext context) {
+    final mode = context.watch<ThemeController>().mode;
+    return MaterialApp(
+      title: 'Innovación Uninorte',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light(useGoogleFonts: useGoogleFonts),
+      darkTheme: AppTheme.dark(useGoogleFonts: useGoogleFonts),
+      themeMode: mode,
+      scrollBehavior: const _NoStretchScrollBehavior(),
+      home: const _AppRoot(),
     );
   }
 }
