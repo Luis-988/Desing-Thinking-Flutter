@@ -61,6 +61,6 @@ class InitiativeModel {
   /// Las filas antiguas no tienen `slots`: se asume una plaza.
   static int _slotsFrom(dynamic value) {
     final parsed = int.tryParse('${value ?? 1}') ?? 1;
-    return parsed < 1 ? 1 : parsed;
+    return parsed < 0 ? 0 : parsed;
   }
 }

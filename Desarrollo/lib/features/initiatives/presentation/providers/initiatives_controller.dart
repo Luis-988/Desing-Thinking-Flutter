@@ -103,6 +103,15 @@ class InitiativesController extends ChangeNotifier {
         .toList();
   }
 
+  List<InitiativeApplication> acceptedMembersFor(String initiativeId) =>
+      _applications
+          .where(
+            (item) =>
+                item.initiativeId == initiativeId &&
+                item.status == ApplicationStatus.accepted,
+          )
+          .toList();
+
   int get pendingReceivedCount => receivedApplications
       .where((item) => item.status == ApplicationStatus.pending)
       .length;

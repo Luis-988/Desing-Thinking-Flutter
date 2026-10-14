@@ -14,6 +14,7 @@ import '../widgets/application_card.dart';
 import '../widgets/initiative_card.dart';
 import '../widgets/owner_actions.dart';
 import 'publish_initiative_page.dart';
+import 'project_workspace_page.dart';
 
 /// Pestaña Mis iniciativas: lo que publiqué y las postulaciones que recibí.
 class MyInitiativesPage extends StatelessWidget {
@@ -36,8 +37,7 @@ class MyInitiativesPage extends StatelessWidget {
         Expanded(
           child: !isLoggedIn
               ? const LoginRequiredState(
-                  message:
-                      'Publica proyectos y revisa las postulaciones de tu equipo.',
+                  message: 'Publica proyectos y revisa las postulaciones de tu equipo.',
                 )
               : DefaultTabController(
                   length: 2,
@@ -110,7 +110,8 @@ class _PublishedTab extends StatelessWidget {
       return EmptyState(
         icon: Icons.lightbulb_outline,
         title: 'Aún no has publicado proyectos',
-        message: 'Comparte tu idea y encuentra a las personas que la harán real.',
+        message:
+            'Comparte tu idea y encuentra a las personas que la harán real.',
         actionLabel: 'Publicar proyecto',
         onAction: () => openPublishPage(context),
       );
@@ -130,9 +131,24 @@ class _PublishedTab extends StatelessWidget {
           for (final initiative in mine)
             Padding(
               padding: const EdgeInsets.only(bottom: 14),
-              child: InitiativeCard(
-                initiative: initiative,
-                ownerActions: OwnerActions(initiative: initiative),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  InitiativeCard(
+                    initiative: initiative,
+                    ownerActions: OwnerActions(initiative: initiative),
+                  ),
+                  if (initiative.roles.isNotEmpty && initiative.openSlots == 0)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: OutlinedButton.icon(
+                        onPressed: () =>
+                            openProjectWorkspace(context, initiative.id),
+                        icon: const Icon(Icons.play_arrow),
+                        label: const Text('Iniciar trabajo del proyecto'),
+                      ),
+                    ),
+                ],
               ),
             ),
         ],
@@ -153,8 +169,7 @@ class _ReceivedTab extends StatelessWidget {
       return const EmptyState(
         icon: Icons.inbox_outlined,
         title: 'Sin postulaciones por ahora',
-        message:
-            'Cuando alguien se postule a una de tus iniciativas aparecerá aquí.',
+        message: 'Cuando alguien se postule a una de tus iniciativas aparecerá aquí.',
       );
     }
 

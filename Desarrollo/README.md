@@ -56,3 +56,9 @@ Para cambiar de backend basta con una nueva implementación del repositorio. Las
 |---|---|
 | `iniciativas` (pública) | titulo, descripcion, categorias (JSON), lider, vacantes (JSON), visitas, popular_manual, activa |
 | `postulaciones` | iniciativa_id, nombre, programa, semestre, vacante, habilidades, mensaje, estado |
+
+## Espacio de trabajo del proyecto
+
+Cuando todas las plazas de una iniciativa tienen integrantes aceptados, aparece la acción **Iniciar trabajo del proyecto** en **Mis iniciativas**. El espacio organiza los 12 entregables de las semanas 1 a 5 en formularios editables, muestra el equipo aceptado y guarda automáticamente el avance en el dispositivo mediante `shared_preferences`.
+
+Los borradores no se sincronizan entre dispositivos ni se guardan en las tablas públicas de Roble; así, las notas de entrevistas y validación no quedan expuestas como parte de la ficha pública del proyecto.

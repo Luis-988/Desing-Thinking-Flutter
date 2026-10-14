@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:desing_thinking_flutter/core/theme/app_theme.dart';
 import 'package:desing_thinking_flutter/core/theme/theme_controller.dart';
@@ -251,6 +252,21 @@ void main() {
       expect(restored.roles.single.skills, isEmpty);
       expect(restored.views, 3);
     });
+
+    test('conserva una vacante agotada al recargar', () {
+      final restored = InitiativeModel.fromRow({
+        '_id': 'full',
+        'titulo': 'Equipo completo',
+        'descripcion': 'd',
+        'categorias': '[]',
+        'lider': 'vanessa',
+        'vacantes':
+            '[{"name":"Desarrollador","description":"Código","slots":0}]',
+      });
+
+      expect(restored.roles.single.slots, 0);
+      expect(restored.openSlots, 0);
+    });
   });
 
   group('InitiativesController', () {
@@ -265,6 +281,37 @@ void main() {
         expect(controller.myInitiatives.single.id, 'mine');
       },
     );
+
+    test('expone como equipo solo las postulaciones aceptadas', () async {
+      final repository = FakeInitiativeRepository();
+      repository.applications.add(
+        InitiativeApplication(
+          id: 'accepted-1',
+          initiativeId: 'mine',
+          applicantName: 'Ana Torres',
+          roleName: 'Marketing',
+          message: 'Quiero aportar.',
+          status: ApplicationStatus.accepted,
+        ),
+      );
+      repository.applications.add(
+        InitiativeApplication(
+          id: 'pending-1',
+          initiativeId: 'mine',
+          applicantName: 'Luis Pérez',
+          roleName: 'Marketing',
+          message: 'Me interesa.',
+        ),
+      );
+      final controller = buildController(repository);
+      await controller.load();
+
+      expect(controller.acceptedMembersFor('mine'), hasLength(1));
+      expect(
+        controller.acceptedMembersFor('mine').single.applicantName,
+        'Ana Torres',
+      );
+    });
 
     test('guarda el error cuando la carga falla', () async {
       final controller = buildController(
@@ -377,6 +424,65 @@ void main() {
       expect(find.text('Perfil'), findsWidgets);
       expect(find.text('Unisports'), findsWidgets);
     });
+
+    testWidgets(
+      'abre el espacio de trabajo al iniciar una iniciativa completa',
+      (tester) async {
+        useTallScreen(tester);
+        SharedPreferences.setMockInitialValues({});
+        final repository = FakeInitiativeRepository();
+        final ownIndex = repository.initiatives.indexWhere(
+          (initiative) => initiative.isMine,
+        );
+        repository.initiatives[ownIndex] = repository.initiatives[ownIndex]
+            .copyWith(
+              roles: [
+                const InitiativeRole(
+                  name: 'Marketing',
+                  description: 'Difusión',
+                  slots: 0,
+                ),
+              ],
+            );
+        repository.applications.add(
+          InitiativeApplication(
+            id: 'accepted-workspace',
+            initiativeId: repository.initiatives[ownIndex].id,
+            applicantName: 'Ana Torres',
+            roleName: 'Marketing',
+            message: 'Quiero aportar.',
+            status: ApplicationStatus.accepted,
+          ),
+        );
+        Injection.init(
+          authRepository: FakeAuthRepository(
+            restoredUser: const ProfileUser(
+              name: 'Líder del proyecto',
+              email: 'lider@example.com',
+              program: 'Ingeniería',
+              semester: '7',
+            ),
+          ),
+          initiativeRepository: repository,
+        );
+
+        await tester.pumpWidget(
+          const UninorteInnovacionApp(useGoogleFonts: false),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Mis iniciativas').last);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Iniciar trabajo del proyecto'));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(
+          find.text('EQUIPO COMPLETO · PROYECTO EN MARCHA'),
+          findsOneWidget,
+        );
+        expect(find.text('Ana Torres'), findsOneWidget);
+      },
+    );
 
     testWidgets('Explorar lista las iniciativas', (tester) async {
       useTallScreen(tester);
