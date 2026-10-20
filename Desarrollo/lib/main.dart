@@ -12,25 +12,37 @@ import 'features/initiatives/presentation/providers/initiatives_controller.dart'
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  Injection.init();
-  runApp(const UninorteInnovacionApp());
+  runApp(
+    UninorteInnovacionApp(dependencies: AppDependencies.production()),
+  );
 }
 
 class UninorteInnovacionApp extends StatelessWidget {
   /// Se desactiva en pruebas para no descargar fuentes de internet.
   final bool useGoogleFonts;
+  final AppDependencies? dependencies;
 
-  const UninorteInnovacionApp({super.key, this.useGoogleFonts = true});
+  const UninorteInnovacionApp({
+    super.key,
+    this.useGoogleFonts = true,
+    this.dependencies,
+  });
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        Provider<AppDependencies>.value(
+          value: dependencies ?? Injection.dependencies,
+        ),
         ChangeNotifierProvider<SessionController>(
-          create: (_) => Injection.createSessionController()..restore(),
+          create: (context) =>
+              context.read<AppDependencies>().createSessionController()
+                ..restore(),
         ),
         ChangeNotifierProxyProvider<SessionController, InitiativesController>(
-          create: (_) => Injection.createInitiativesController(),
+          create: (context) =>
+              context.read<AppDependencies>().createInitiativesController(),
           update: (_, session, controller) {
             controller!.syncSession(session.status);
             return controller;

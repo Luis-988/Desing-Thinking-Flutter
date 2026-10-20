@@ -10,6 +10,7 @@ class ProjectActivityModel {
     description: (row['descripcion'] ?? '').toString(),
     dueDate: DateTime.parse((row['fecha_limite'] ?? '').toString()),
     isCompleted: row['completada'] == true || row['completada'] == 1,
+    sprintId: row['sprint_id']?.toString(),
   );
 
   static Map<String, dynamic> toRow(ProjectActivity activity) => {
@@ -23,6 +24,7 @@ class ProjectActivityModel {
       activity.dueDate.day,
     ).toIso8601String(),
     'completada': activity.isCompleted,
+    if (activity.sprintId != null) 'sprint_id': activity.sprintId,
   };
 
   static ProjectActivity fromStoredJson(Map<String, dynamic> row) =>

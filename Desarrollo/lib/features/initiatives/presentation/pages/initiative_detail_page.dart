@@ -145,7 +145,13 @@ class _Header extends StatelessWidget {
                 'MÁS POPULAR',
                 icon: Icons.local_fire_department,
               ),
-            if (initiative.isActive) const AppTag.success('Activa'),
+            if (initiative.openSlots == 0)
+              const AppTag.warning(
+                'PROYECTO LLENO · TRABAJO INICIADO',
+                icon: Icons.groups_outlined,
+              )
+            else if (initiative.isActive)
+              const AppTag.success('Activa'),
           ],
         ),
         if (initiative.isPopular || initiative.isActive)

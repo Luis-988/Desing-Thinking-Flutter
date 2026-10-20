@@ -30,6 +30,7 @@ class InitiativeCard extends StatelessWidget {
         initiative.isActive &&
         initiative.openSlots > 0 &&
         initiative.openSlots <= 1;
+    final isFull = initiative.openSlots == 0;
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -46,7 +47,13 @@ class InitiativeCard extends StatelessWidget {
                       'MÁS POPULAR',
                       icon: Icons.local_fire_department,
                     ),
-                  if (isAlmostFull) ...[
+                  if (isFull) ...[
+                    if (initiative.isPopular) const SizedBox(width: 6),
+                    const AppTag.warning(
+                      'PROYECTO LLENO',
+                      icon: Icons.groups_outlined,
+                    ),
+                  ] else if (isAlmostFull) ...[
                     if (initiative.isPopular) const SizedBox(width: 6),
                     const AppTag.warning('ÚLTIMA PLAZA', icon: Icons.bolt),
                   ],
@@ -72,7 +79,10 @@ class InitiativeCard extends StatelessWidget {
                             style: AppText.cardTitle,
                           ),
                         ),
-                        if (initiative.isActive) const AppTag.success('Activa'),
+                        if (isFull)
+                          const AppTag.warning('Trabajo iniciado')
+                        else if (initiative.isActive)
+                          const AppTag.success('Activa'),
                       ],
                     ),
                     const SizedBox(height: 8),
@@ -123,8 +133,8 @@ class InitiativeCard extends StatelessWidget {
                         ),
                         const Spacer(),
                         Text(
-                          initiative.openSlots == 0
-                              ? 'Equipo completo'
+                          isFull
+                              ? 'Proyecto lleno · Trabajo iniciado'
                               : 'Buscando equipo',
                           style: AppText.caption.copyWith(
                             color: initiative.openSlots == 0
@@ -210,7 +220,9 @@ class CompactInitiativeCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    if (initiative.isPopular)
+                    if (initiative.openSlots == 0)
+                      const AppTag.warning('LLENO')
+                    else if (initiative.isPopular)
                       const AppTag.accent('POPULAR')
                     else
                       const AppTag.success('Activa'),
@@ -244,7 +256,9 @@ class CompactInitiativeCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 5),
                     Text(
-                      '${initiative.openSlots} ${initiative.openSlots == 1 ? 'plaza' : 'plazas'} abiertas',
+                      initiative.openSlots == 0
+                          ? 'Proyecto lleno · trabajo iniciado'
+                          : '${initiative.openSlots} ${initiative.openSlots == 1 ? 'plaza' : 'plazas'} abiertas',
                       style: AppText.caption.copyWith(color: AppColors.navy),
                     ),
                   ],

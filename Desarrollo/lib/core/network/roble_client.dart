@@ -10,6 +10,11 @@ class RobleClient {
 
   static const String tablaIniciativas = 'iniciativas';
   static const String tablaPostulaciones = 'postulaciones';
+  static const String tablaIniciativasGuardadas = 'iniciativas_guardadas';
+  static const String tablaSprints = 'sprints';
+  static const String tablaMensajesWorkspace = 'mensajes_workspace';
+  static const String tablaComentariosWorkspace = 'comentarios_workspace';
+  static const String tablaFeedbackSprints = 'feedback_sprints';
 
   static final RobleApiDataBase db = RobleApiDataBase(
     config: RobleApiConfig.fromContract(

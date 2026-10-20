@@ -136,6 +136,12 @@ class RoleDetailPage extends StatelessWidget {
         ],
       );
     }
+    if (initiative.openSlots == 0) {
+      return const OutlinedButton(
+        onPressed: null,
+        child: Text('Proyecto lleno · trabajo iniciado'),
+      );
+    }
     return FilledButton(
       onPressed: () {
         if (!requireLogin(context, 'postularte')) return;

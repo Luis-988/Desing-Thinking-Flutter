@@ -22,7 +22,10 @@ Future<T> guardRoble<T>(Future<T> Function() action) async {
     if (e.statusCode == 403) {
       throw const AppException('No tienes permiso para hacer esta acción.');
     }
-    throw AppException('Roble respondió con un error (${e.statusCode}).');
+    throw AppException(
+      'Roble rechazó los datos (${e.statusCode}): ${e.message}'
+      '${e.code == null ? '' : ' [${e.code}]'}',
+    );
   } on RobleApiException catch (e) {
     throw AppException('Error con Roble: ${e.message}');
   }

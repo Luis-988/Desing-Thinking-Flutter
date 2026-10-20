@@ -143,7 +143,7 @@ class _PublishedTab extends StatelessWidget {
                             onPressed: () =>
                                 openProjectWorkspace(context, initiative.id),
                             icon: const Icon(Icons.play_arrow),
-                            label: const Text('Iniciar trabajo del proyecto'),
+                            label: const Text('Abrir espacio de trabajo'),
                           )
                         : null,
                   ),

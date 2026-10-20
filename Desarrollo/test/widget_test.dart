@@ -513,7 +513,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.text('Mis iniciativas').last);
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Iniciar trabajo del proyecto'));
+        await tester.tap(find.text('Abrir espacio de trabajo'));
         await tester.pumpAndSettle();
 
         expect(tester.takeException(), isNull);

@@ -80,7 +80,7 @@ class HomeTab extends StatelessWidget {
 
     return [
       HomeOverviewStrip(
-        initiatives: controller.activeInitiatives.length,
+        initiatives: controller.availableInitiatives.length,
         openSlots: controller.openSlotsCount,
         applications: controller.myApplications.length,
       ),

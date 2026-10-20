@@ -5,6 +5,7 @@ class ProjectActivity {
   final String description;
   final DateTime dueDate;
   final bool isCompleted;
+  final String? sprintId;
 
   const ProjectActivity({
     required this.id,
@@ -13,6 +14,7 @@ class ProjectActivity {
     required this.description,
     required this.dueDate,
     this.isCompleted = false,
+    this.sprintId,
   });
 
   ProjectActivity copyWith({
@@ -20,6 +22,7 @@ class ProjectActivity {
     String? description,
     DateTime? dueDate,
     bool? isCompleted,
+    String? sprintId,
   }) => ProjectActivity(
     id: id,
     initiativeId: initiativeId,
@@ -27,5 +30,6 @@ class ProjectActivity {
     description: description ?? this.description,
     dueDate: dueDate ?? this.dueDate,
     isCompleted: isCompleted ?? this.isCompleted,
+    sprintId: sprintId ?? this.sprintId,
   );
 }
