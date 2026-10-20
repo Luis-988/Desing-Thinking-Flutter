@@ -6,11 +6,15 @@ import '../../domain/entities/workspace_message.dart';
 import '../../domain/entities/workspace_publication.dart';
 import '../../domain/entities/publication_comment.dart';
 import '../../domain/repositories/workspace_repository.dart';
+import '../../domain/repositories/public_feed_repository.dart';
 
 class WorkspaceController extends ChangeNotifier {
   final WorkspaceRepository _repository;
 
-  WorkspaceController(this._repository);
+  final PublicFeedRepository? _publicFeedRepository;
+
+  WorkspaceController(this._repository, {PublicFeedRepository? publicFeedRepository})
+      : _publicFeedRepository = publicFeedRepository;
 
   List<WorkspaceMessage> _messages = [];
   List<WorkspaceComment> _comments = [];
@@ -43,10 +47,16 @@ class WorkspaceController extends ChangeNotifier {
       _messages = await _repository.getMessages(initiativeId);
       _comments = await _repository.getComments(initiativeId);
       _members = await _repository.getMembers(initiativeId);
-      _publications = await _repository.getPublications(initiativeId);
-      _publicationComments = await _repository.getPublicationComments(
-        initiativeId,
-      );
+      _publications = _publicFeedRepository == null
+          ? await _repository.getPublications(initiativeId)
+          : (await _publicFeedRepository.getPublications())
+                .where((item) => item.initiativeId == initiativeId)
+                .toList();
+      _publicationComments = _publicFeedRepository == null
+          ? await _repository.getPublicationComments(initiativeId)
+          : (await _publicFeedRepository.getComments())
+                .where((item) => item.initiativeId == initiativeId)
+                .toList();
       if (_members.isEmpty && initialMembers.isNotEmpty) {
         for (final member in initialMembers) {
           await _repository.updateMember(member);
@@ -103,16 +113,17 @@ class WorkspaceController extends ChangeNotifier {
     required String title,
     required String text,
   }) async {
-    final publication = await _repository.createPublication(
-      WorkspacePublication(
+    final draft = WorkspacePublication(
         id: '',
         initiativeId: initiativeId,
         author: author,
         title: title,
         text: text,
         createdAt: DateTime.now(),
-      ),
-    );
+      );
+    final publication = _publicFeedRepository == null
+        ? await _repository.createPublication(draft)
+        : await _publicFeedRepository.createPublication(draft);
     _publications = [..._publications, publication];
     notifyListeners();
   }
@@ -123,16 +134,17 @@ class WorkspaceController extends ChangeNotifier {
     required String author,
     required String text,
   }) async {
-    final comment = await _repository.addPublicationComment(
-      PublicationComment(
+    final draft = PublicationComment(
         id: '',
         publicationId: publicationId,
         initiativeId: initiativeId,
         author: author,
         text: text,
         createdAt: DateTime.now(),
-      ),
-    );
+      );
+    final comment = _publicFeedRepository == null
+        ? await _repository.addPublicationComment(draft)
+        : await _publicFeedRepository.addComment(draft);
     _publicationComments = [..._publicationComments, comment];
     notifyListeners();
   }

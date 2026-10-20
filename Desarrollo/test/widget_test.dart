@@ -458,8 +458,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Explorar'), findsWidgets);
-      expect(find.text('Mis iniciativas'), findsWidgets);
-      expect(find.text('Guardados'), findsWidgets);
+      expect(find.text('Comunidad'), findsWidgets);
       expect(find.text('Perfil'), findsWidgets);
       expect(find.text('Unisports'), findsWidgets);
     });
@@ -511,7 +510,9 @@ void main() {
           const UninorteInnovacionApp(useGoogleFonts: false),
         );
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Mis iniciativas').last);
+        await tester.tap(find.byTooltip('Abrir menú'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Mis iniciativas'));
         await tester.pumpAndSettle();
         await tester.tap(find.text('Abrir espacio de trabajo'));
         await tester.pumpAndSettle();

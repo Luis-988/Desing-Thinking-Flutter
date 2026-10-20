@@ -9,6 +9,7 @@ import 'features/auth/presentation/providers/session_controller.dart';
 import 'features/home/presentation/pages/home_shell.dart';
 import 'features/home/presentation/providers/home_tab_controller.dart';
 import 'features/initiatives/presentation/providers/initiatives_controller.dart';
+import 'features/initiatives/presentation/providers/public_feed_controller.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,6 +51,11 @@ class UninorteInnovacionApp extends StatelessWidget {
         ),
         ChangeNotifierProvider<HomeTabController>(
           create: (_) => HomeTabController(),
+        ),
+        ChangeNotifierProvider<PublicFeedController>(
+          create: (context) =>
+              context.read<AppDependencies>().createPublicFeedController()
+                ..load(),
         ),
         ChangeNotifierProvider<ThemeController>(
           create: (_) => ThemeController(),

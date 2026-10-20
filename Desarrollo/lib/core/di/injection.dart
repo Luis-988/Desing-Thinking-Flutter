@@ -41,6 +41,10 @@ import '../network/roble_client.dart';
 import '../../features/initiatives/data/datasources/sprint_feedback_remote_data_source.dart';
 import '../../features/initiatives/data/repositories/sprint_feedback_repository_impl.dart';
 import '../../features/initiatives/domain/repositories/sprint_feedback_repository.dart';
+import '../../features/initiatives/data/datasources/public_feed_remote_data_source.dart';
+import '../../features/initiatives/data/repositories/public_feed_repository_impl.dart';
+import '../../features/initiatives/domain/repositories/public_feed_repository.dart';
+import '../../features/initiatives/presentation/providers/public_feed_controller.dart';
 import '../../features/initiatives/presentation/providers/sprint_feedback_controller.dart';
 
 class AppDependencies {
@@ -51,6 +55,7 @@ class AppDependencies {
   final WorkspaceRepository workspaceRepository;
   final SprintFeedbackRepository sprintFeedbackRepository;
   final SavedInitiativeRepository savedInitiativeRepository;
+  final PublicFeedRepository publicFeedRepository;
 
   AppDependencies({
     required this.authRepository,
@@ -60,8 +65,14 @@ class AppDependencies {
     required this.workspaceRepository,
     required this.sprintFeedbackRepository,
     SavedInitiativeRepository? savedInitiativeRepository,
+    PublicFeedRepository? publicFeedRepository,
   }) : savedInitiativeRepository =
-           savedInitiativeRepository ?? InMemorySavedInitiativeRepository();
+           savedInitiativeRepository ?? InMemorySavedInitiativeRepository(),
+       publicFeedRepository =
+           publicFeedRepository ??
+           PublicFeedRepositoryImpl(
+             PublicFeedRemoteDataSource(RobleClient.db),
+           );
 
   factory AppDependencies.production() => AppDependencies(
     authRepository: AuthRepositoryImpl(AuthRemoteDataSource(RobleClient.db)),
@@ -80,6 +91,9 @@ class AppDependencies {
     ),
     savedInitiativeRepository: SavedInitiativeRepositoryImpl(
       SavedInitiativeRemoteDataSource(RobleClient.db),
+    ),
+    publicFeedRepository: PublicFeedRepositoryImpl(
+      PublicFeedRemoteDataSource(RobleClient.db),
     ),
   );
 
@@ -145,7 +159,13 @@ class AppDependencies {
       );
 
   WorkspaceController createWorkspaceController() =>
-      WorkspaceController(workspaceRepository);
+      WorkspaceController(
+        workspaceRepository,
+        publicFeedRepository: publicFeedRepository,
+      );
+
+  PublicFeedController createPublicFeedController() =>
+      PublicFeedController(publicFeedRepository);
 
   SprintFeedbackController createSprintFeedbackController() =>
       SprintFeedbackController(sprintFeedbackRepository);

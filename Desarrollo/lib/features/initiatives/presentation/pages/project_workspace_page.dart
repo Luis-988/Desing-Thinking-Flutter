@@ -19,6 +19,7 @@ import '../providers/project_activities_controller.dart';
 import '../providers/project_sprints_controller.dart';
 import '../providers/sprint_feedback_controller.dart';
 import '../providers/workspace_controller.dart';
+import '../providers/public_feed_controller.dart';
 
 void openProjectWorkspace(BuildContext context, String initiativeId) {
   Navigator.of(context).push(
@@ -398,6 +399,7 @@ class _ProjectWorkspacePageState extends State<ProjectWorkspacePage> {
         title: result.$1,
         text: result.$2,
       );
+      await context.read<PublicFeedController>().load();
       if (mounted) showAppSnack(context, 'Avance publicado.');
     } catch (error) {
       if (mounted) showAppSnack(context, messageOf(error));
@@ -802,8 +804,7 @@ class _WorkspacePublicationsTab extends StatefulWidget {
       _WorkspacePublicationsTabState();
 }
 
-class _WorkspacePublicationsTabState
-    extends State<_WorkspacePublicationsTab> {
+class _WorkspacePublicationsTabState extends State<_WorkspacePublicationsTab> {
   Future<void> _comment(WorkspacePublication publication) async {
     final controller = TextEditingController();
     final text = await showDialog<String>(
@@ -895,8 +896,10 @@ class _WorkspacePublicationsTabState
                       style: AppText.caption,
                     ),
                     const SizedBox(height: 10),
-                    for (final comment in widget.controller
-                        .commentsForPublication(publication.id))
+                    for (final comment
+                        in widget.controller.commentsForPublication(
+                          publication.id,
+                        ))
                       Padding(
                         padding: const EdgeInsets.only(bottom: 4),
                         child: Text('${comment.author}: ${comment.text}'),

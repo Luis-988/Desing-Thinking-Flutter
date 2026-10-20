@@ -15,6 +15,9 @@ class RobleClient {
   static const String tablaMensajesWorkspace = 'mensajes_workspace';
   static const String tablaComentariosWorkspace = 'comentarios_workspace';
   static const String tablaFeedbackSprints = 'feedback_sprints';
+  static const String tablaPublicacionesAvance = 'publicaciones_avance';
+  static const String tablaComentariosPublicacion =
+      'comentarios_publicacion';
 
   static final RobleApiDataBase db = RobleApiDataBase(
     config: RobleApiConfig.fromContract(
