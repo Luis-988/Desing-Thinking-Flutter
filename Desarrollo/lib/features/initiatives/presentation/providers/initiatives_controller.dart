@@ -103,6 +103,15 @@ class InitiativesController extends ChangeNotifier {
         .toList();
   }
 
+  List<InitiativeApplication> acceptedMembersFor(String initiativeId) =>
+      _applications
+          .where(
+            (item) =>
+                item.initiativeId == initiativeId &&
+                item.status == ApplicationStatus.accepted,
+          )
+          .toList();
+
   int get pendingReceivedCount => receivedApplications
       .where((item) => item.status == ApplicationStatus.pending)
       .length;
@@ -320,15 +329,51 @@ class InitiativesController extends ChangeNotifier {
     InitiativeApplication application,
     ApplicationStatus status,
   ) async {
+    final wasAlreadyAccepted =
+        application.status == ApplicationStatus.accepted ||
+        _applications.any(
+          (item) =>
+              item.id == application.id &&
+              item.status == ApplicationStatus.accepted,
+        );
+
     await _updateApplicationStatus(application, status);
     _applications = [
       for (final item in _applications)
         item.id == application.id ? item.copyWith(status: status) : item,
     ];
+
+    if (status == ApplicationStatus.accepted && !wasAlreadyAccepted) {
+      final initiative = initiativeById(application.initiativeId);
+      if (initiative != null) {
+        final updatedInitiative = _consumeAcceptedRoleSlot(
+          initiative,
+          application.roleName,
+        );
+        await _updateInitiative(updatedInitiative);
+        _replace(updatedInitiative);
+      }
+    }
+
     notifyListeners();
   }
 
   // --------------------------------------------------------------- internos
+
+  Initiative _consumeAcceptedRoleSlot(Initiative initiative, String roleName) {
+    final updatedRoles = initiative.roles.map((role) {
+      if (role.name != roleName) return role;
+      final nextSlots = role.slots > 0 ? role.slots - 1 : 0;
+      return InitiativeRole(
+        name: role.name,
+        description: role.description,
+        slots: nextSlots,
+        skills: role.skills,
+      );
+    }).toList();
+
+    return initiative.copyWith(roles: updatedRoles);
+  }
 
   void _replace(Initiative updated) {
     _initiatives = [

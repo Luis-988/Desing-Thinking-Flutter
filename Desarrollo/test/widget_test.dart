@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:desing_thinking_flutter/core/theme/app_theme.dart';
+import 'package:desing_thinking_flutter/core/theme/theme_controller.dart';
 import 'package:desing_thinking_flutter/core/di/injection.dart';
 import 'package:desing_thinking_flutter/core/error/app_exception.dart';
 import 'package:desing_thinking_flutter/features/auth/domain/entities/auth_result.dart';
@@ -9,15 +13,20 @@ import 'package:desing_thinking_flutter/features/auth/domain/repositories/auth_r
 import 'package:desing_thinking_flutter/features/initiatives/data/models/initiative_model.dart';
 import 'package:desing_thinking_flutter/features/initiatives/domain/entities/initiative.dart';
 import 'package:desing_thinking_flutter/features/initiatives/domain/entities/initiative_application.dart';
+import 'package:desing_thinking_flutter/features/initiatives/domain/entities/project_activity.dart';
 import 'package:desing_thinking_flutter/features/initiatives/domain/repositories/initiative_repository.dart';
+import 'package:desing_thinking_flutter/features/initiatives/domain/repositories/project_activity_repository.dart';
 import 'package:desing_thinking_flutter/features/initiatives/presentation/providers/initiatives_controller.dart';
 import 'package:desing_thinking_flutter/main.dart';
 
 class FakeAuthRepository implements AuthRepository {
+  final ProfileUser? restoredUser;
   final Map<String, (String password, ProfileUser user)> _users = {};
 
+  FakeAuthRepository({this.restoredUser});
+
   @override
-  Future<ProfileUser?> restoreSession() async => null;
+  Future<ProfileUser?> restoreSession() async => restoredUser;
 
   @override
   Future<AuthResult> register({
@@ -142,6 +151,41 @@ class FakeInitiativeRepository implements InitiativeRepository {
   ) async {}
 }
 
+class FakeProjectActivityRepository implements ProjectActivityRepository {
+  final List<ProjectActivity> activities = [];
+  var _nextId = 1;
+
+  @override
+  Future<List<ProjectActivity>> getActivities(String initiativeId) async =>
+      activities
+          .where((activity) => activity.initiativeId == initiativeId)
+          .toList();
+
+  @override
+  Future<ProjectActivity> createActivity(ProjectActivity activity) async {
+    final saved = ProjectActivity(
+      id: 'activity-${_nextId++}',
+      initiativeId: activity.initiativeId,
+      title: activity.title,
+      description: activity.description,
+      dueDate: activity.dueDate,
+    );
+    activities.add(saved);
+    return saved;
+  }
+
+  @override
+  Future<void> updateActivity(ProjectActivity activity) async {
+    final index = activities.indexWhere((item) => item.id == activity.id);
+    if (index != -1) activities[index] = activity;
+  }
+
+  @override
+  Future<void> deleteActivity(ProjectActivity activity) async {
+    activities.removeWhere((item) => item.id == activity.id);
+  }
+}
+
 /// Las listas de Flutter solo construyen lo que cabe en pantalla. Con una
 /// pantalla alta de prueba, todas las tarjetas quedan construidas.
 void useTallScreen(WidgetTester tester) {
@@ -154,6 +198,7 @@ InitiativesController buildController(FakeInitiativeRepository repository) {
   Injection.init(
     authRepository: FakeAuthRepository(),
     initiativeRepository: repository,
+    projectActivityRepository: FakeProjectActivityRepository(),
   );
   return Injection.createInitiativesController();
 }
@@ -245,6 +290,21 @@ void main() {
       expect(restored.roles.single.skills, isEmpty);
       expect(restored.views, 3);
     });
+
+    test('conserva una vacante agotada al recargar', () {
+      final restored = InitiativeModel.fromRow({
+        '_id': 'full',
+        'titulo': 'Equipo completo',
+        'descripcion': 'd',
+        'categorias': '[]',
+        'lider': 'vanessa',
+        'vacantes':
+            '[{"name":"Desarrollador","description":"Código","slots":0}]',
+      });
+
+      expect(restored.roles.single.slots, 0);
+      expect(restored.openSlots, 0);
+    });
   });
 
   group('InitiativesController', () {
@@ -259,6 +319,37 @@ void main() {
         expect(controller.myInitiatives.single.id, 'mine');
       },
     );
+
+    test('expone como equipo solo las postulaciones aceptadas', () async {
+      final repository = FakeInitiativeRepository();
+      repository.applications.add(
+        InitiativeApplication(
+          id: 'accepted-1',
+          initiativeId: 'mine',
+          applicantName: 'Ana Torres',
+          roleName: 'Marketing',
+          message: 'Quiero aportar.',
+          status: ApplicationStatus.accepted,
+        ),
+      );
+      repository.applications.add(
+        InitiativeApplication(
+          id: 'pending-1',
+          initiativeId: 'mine',
+          applicantName: 'Luis Pérez',
+          roleName: 'Marketing',
+          message: 'Me interesa.',
+        ),
+      );
+      final controller = buildController(repository);
+      await controller.load();
+
+      expect(controller.acceptedMembersFor('mine'), hasLength(1));
+      expect(
+        controller.acceptedMembersFor('mine').single.applicantName,
+        'Ana Torres',
+      );
+    });
 
     test('guarda el error cuando la carga falla', () async {
       final controller = buildController(
@@ -325,6 +416,27 @@ void main() {
       expect(controller.initiativeById('mine')!.views, 0);
       expect(controller.initiativeById('unisports')!.views, 1);
     });
+
+    test('al aceptar una postulación reduce la plaza disponible', () async {
+      final controller = buildController(FakeInitiativeRepository());
+      await controller.load();
+
+      final application = InitiativeApplication(
+        id: 'app-1',
+        initiativeId: 'unisports',
+        applicantName: 'Ana Torres',
+        roleName: 'Diseñador UX/UI',
+        message: 'Quiero aportar.',
+      );
+
+      await controller.setApplicationStatus(
+        application,
+        ApplicationStatus.accepted,
+      );
+
+      expect(controller.initiativeById('unisports')!.openSlots, 1);
+      expect(controller.initiativeById('unisports')!.roles.single.slots, 1);
+    });
   });
 
   group('App', () {
@@ -332,6 +444,7 @@ void main() {
       Injection.init(
         authRepository: FakeAuthRepository(),
         initiativeRepository: FakeInitiativeRepository(),
+        projectActivityRepository: FakeProjectActivityRepository(),
       );
     });
 
@@ -351,6 +464,160 @@ void main() {
       expect(find.text('Unisports'), findsWidgets);
     });
 
+    testWidgets(
+      'abre el espacio de trabajo al iniciar una iniciativa completa',
+      (tester) async {
+        useTallScreen(tester);
+        SharedPreferences.setMockInitialValues({});
+        final repository = FakeInitiativeRepository();
+        final ownIndex = repository.initiatives.indexWhere(
+          (initiative) => initiative.isMine,
+        );
+        repository.initiatives[ownIndex] = repository.initiatives[ownIndex]
+            .copyWith(
+              roles: [
+                const InitiativeRole(
+                  name: 'Marketing',
+                  description: 'Difusión',
+                  slots: 0,
+                ),
+              ],
+            );
+        repository.applications.add(
+          InitiativeApplication(
+            id: 'accepted-workspace',
+            initiativeId: repository.initiatives[ownIndex].id,
+            applicantName: 'Ana Torres',
+            roleName: 'Marketing',
+            message: 'Quiero aportar.',
+            status: ApplicationStatus.accepted,
+          ),
+        );
+        final projectActivities = FakeProjectActivityRepository();
+        Injection.init(
+          authRepository: FakeAuthRepository(
+            restoredUser: const ProfileUser(
+              name: 'Líder del proyecto',
+              email: 'lider@example.com',
+              program: 'Ingeniería',
+              semester: '7',
+            ),
+          ),
+          initiativeRepository: repository,
+          projectActivityRepository: projectActivities,
+        );
+
+        await tester.pumpWidget(
+          const UninorteInnovacionApp(useGoogleFonts: false),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Mis iniciativas').last);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Iniciar trabajo del proyecto'));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('Ruta de trabajo'), findsOneWidget);
+        expect(find.text('Ana Torres'), findsOneWidget);
+        expect(find.text('Comprender a las personas'), findsNothing);
+        expect(find.byTooltip('Añadir actividad'), findsOneWidget);
+
+        await tester.tap(find.byTooltip('Añadir actividad'));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byType(TextFormField).first,
+          'Preparar entrevistas',
+        );
+        await tester.tap(find.text('Añadir').last);
+        await tester.pumpAndSettle();
+
+        expect(find.text('Preparar entrevistas'), findsOneWidget);
+        expect(projectActivities.activities, hasLength(1));
+        expect(find.text('Entrevista 1'), findsNothing);
+
+        await tester.tap(find.byTooltip('Opciones de actividad').first);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Editar'));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byType(TextFormField).first,
+          'Preparar entrevista con usuarios',
+        );
+        await tester.tap(find.text('Guardar cambios'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Preparar entrevista con usuarios'), findsOneWidget);
+        expect(
+          projectActivities.activities.single.title,
+          'Preparar entrevista con usuarios',
+        );
+
+        await tester.tap(find.byType(Checkbox).first);
+        await tester.pumpAndSettle();
+        expect(find.text('Realizada'), findsOneWidget);
+        expect(projectActivities.activities.single.isCompleted, isTrue);
+
+        await tester.tap(find.byTooltip('Opciones de actividad').first);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Eliminar'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Eliminar').last);
+        await tester.pumpAndSettle();
+
+        expect(projectActivities.activities, isEmpty);
+        expect(find.text('Preparar entrevista con usuarios'), findsNothing);
+      },
+    );
+
+    testWidgets('un integrante aceptado puede abrir y ver la ruta', (
+      tester,
+    ) async {
+      useTallScreen(tester);
+      final repository = FakeInitiativeRepository();
+      repository.applications.add(
+        InitiativeApplication(
+          id: 'accepted-member',
+          initiativeId: 'unisports',
+          applicantName: 'Ana Torres',
+          roleName: 'Diseñador UX/UI',
+          message: 'Quiero aportar.',
+          status: ApplicationStatus.accepted,
+          isMine: true,
+        ),
+      );
+      Injection.init(
+        authRepository: FakeAuthRepository(
+          restoredUser: const ProfileUser(
+            name: 'Ana Torres',
+            email: 'ana@example.com',
+            program: 'Ingeniería',
+            semester: '5',
+          ),
+        ),
+        initiativeRepository: repository,
+        projectActivityRepository: FakeProjectActivityRepository(),
+      );
+
+      await tester.pumpWidget(
+        const UninorteInnovacionApp(useGoogleFonts: false),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Explorar').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Unisports').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Ver ruta de trabajo'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Ruta de trabajo'), findsOneWidget);
+      expect(
+        find.text('El líder aún no ha añadido actividades para esta semana.'),
+        findsOneWidget,
+      );
+      expect(find.text('Añadir actividad'), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('Explorar lista las iniciativas', (tester) async {
       useTallScreen(tester);
       await tester.pumpWidget(
@@ -363,6 +630,68 @@ void main() {
 
       expect(find.text('2 iniciativas activas'), findsOneWidget);
       expect(find.text('Proyecto propio'), findsWidgets);
+    });
+
+    testWidgets('activar modo oscuro no produce errores', (tester) async {
+      final controller = ThemeController();
+      await tester.pumpWidget(
+        ChangeNotifierProvider.value(
+          value: controller,
+          child: Consumer<ThemeController>(
+            builder: (context, theme, _) => MaterialApp(
+              theme: AppTheme.light(useGoogleFonts: false),
+              darkTheme: AppTheme.dark(useGoogleFonts: false),
+              themeMode: theme.mode,
+              home: Scaffold(
+                body: SwitchListTile(
+                  title: const Text('Modo oscuro'),
+                  value: theme.isDark,
+                  onChanged: (_) => theme.toggle(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(SwitchListTile));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(controller.isDark, isTrue);
+      expect(
+        Theme.of(tester.element(find.byType(SwitchListTile))).brightness,
+        Brightness.dark,
+      );
+    });
+
+    testWidgets('el perfil autenticado activa el modo oscuro', (tester) async {
+      useTallScreen(tester);
+      Injection.init(
+        authRepository: FakeAuthRepository(
+          restoredUser: const ProfileUser(
+            name: 'Ana Torres',
+            email: 'ana@example.com',
+            program: 'Ingeniería',
+            semester: '5',
+          ),
+        ),
+        initiativeRepository: FakeInitiativeRepository(),
+        projectActivityRepository: FakeProjectActivityRepository(),
+      );
+      await tester.pumpWidget(
+        const UninorteInnovacionApp(useGoogleFonts: false),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Perfil').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(SwitchListTile));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Tema oscuro activado'), findsOneWidget);
     });
   });
 }

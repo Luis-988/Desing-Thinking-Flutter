@@ -8,10 +8,12 @@ import '../../../../core/widgets/initials_avatar.dart';
 import '../../../../core/widgets/state_views.dart';
 import '../../../home/presentation/providers/home_tab_controller.dart';
 import '../../domain/entities/initiative.dart';
+import '../../domain/entities/initiative_application.dart';
 import '../providers/initiatives_controller.dart';
 import '../widgets/bookmark_button.dart';
 import '../widgets/status_pill.dart';
 import 'leader_profile_page.dart';
+import 'project_workspace_page.dart';
 import 'role_detail_page.dart';
 
 /// Abre la ficha de una iniciativa.
@@ -48,6 +50,12 @@ class _InitiativeDetailPageState extends State<InitiativeDetailPage> {
   Widget build(BuildContext context) {
     final controller = context.watch<InitiativesController>();
     final initiative = controller.initiativeById(widget.initiativeId);
+    final isAcceptedMember = controller.applications.any(
+      (application) =>
+          application.isMine &&
+          application.initiativeId == widget.initiativeId &&
+          application.status == ApplicationStatus.accepted,
+    );
 
     if (initiative == null) {
       return Scaffold(
@@ -69,6 +77,14 @@ class _InitiativeDetailPageState extends State<InitiativeDetailPage> {
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
         children: [
           _Header(initiative: initiative),
+          if (initiative.isMine || isAcceptedMember) ...[
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: () => openProjectWorkspace(context, initiative.id),
+              icon: const Icon(Icons.calendar_month_outlined),
+              label: const Text('Ver ruta de trabajo'),
+            ),
+          ],
           const SizedBox(height: 16),
           _LeaderTile(initiative: initiative),
           const SizedBox(height: 16),
@@ -85,7 +101,10 @@ class _InitiativeDetailPageState extends State<InitiativeDetailPage> {
           Row(
             children: [
               const Expanded(
-                child: Text('Vacantes disponibles', style: AppText.sectionTitle),
+                child: Text(
+                  'Vacantes disponibles',
+                  style: AppText.sectionTitle,
+                ),
               ),
               AppTag.violet('${initiative.roles.length} roles'),
             ],
@@ -122,7 +141,10 @@ class _Header extends StatelessWidget {
           runSpacing: 6,
           children: [
             if (initiative.isPopular)
-              const AppTag.accent('MÁS POPULAR', icon: Icons.local_fire_department),
+              const AppTag.accent(
+                'MÁS POPULAR',
+                icon: Icons.local_fire_department,
+              ),
             if (initiative.isActive) const AppTag.success('Activa'),
           ],
         ),
@@ -222,7 +244,11 @@ class _StatBox extends StatelessWidget {
   final String value;
   final String label;
 
-  const _StatBox({required this.icon, required this.value, required this.label});
+  const _StatBox({
+    required this.icon,
+    required this.value,
+    required this.label,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -312,9 +338,10 @@ class _RoleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final application = context
-        .watch<InitiativesController>()
-        .myApplicationFor(initiative.id, role.name);
+    final application = context.watch<InitiativesController>().myApplicationFor(
+      initiative.id,
+      role.name,
+    );
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -367,7 +394,11 @@ class _RoleCard extends StatelessWidget {
                       ),
                     ),
                   const Spacer(),
-                  const Icon(Icons.arrow_forward, size: 18, color: AppColors.navy),
+                  const Icon(
+                    Icons.arrow_forward,
+                    size: 18,
+                    color: AppColors.navy,
+                  ),
                 ],
               ),
             ],

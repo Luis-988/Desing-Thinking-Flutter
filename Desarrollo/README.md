@@ -56,3 +56,9 @@ Para cambiar de backend basta con una nueva implementación del repositorio. Las
 |---|---|
 | `iniciativas` (pública) | titulo, descripcion, categorias (JSON), lider, vacantes (JSON), visitas, popular_manual, activa |
 | `postulaciones` | iniciativa_id, nombre, programa, semestre, vacante, habilidades, mensaje, estado |
+
+## Espacio de trabajo del proyecto
+
+El líder puede abrir la ruta desde **Mis iniciativas** o desde la ficha de su iniciativa; los integrantes aceptados pueden abrirla desde la ficha. La ruta no incluye semanas ni entregables predefinidos: el líder crea, modifica y elimina actividades con fecha límite desde el calendario. Se agrupan automáticamente por semana (lunes a domingo). El líder y los integrantes aceptados pueden marcar cada actividad como realizada.
+
+Las actividades se sincronizan en el árbol JSON de Roble, en `iniciativas/<id>/actividades`. El árbol crea la ruta al guardar la primera tarea, por lo que no se necesita crear una tabla ni una columna. Cada actividad usa una clave generada por Roble y se puede actualizar individualmente. La política de acceso del árbol debe permitir lectura y cambios únicamente a los integrantes del equipo.
