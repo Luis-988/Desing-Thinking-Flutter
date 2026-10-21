@@ -52,12 +52,34 @@ Para cambiar de backend basta con una nueva implementación del repositorio. Las
 
 ## Tablas en Roble
 
-| Tabla | Columnas |
-|---|---|
-| `iniciativas` (pública) | titulo, descripcion, categorias (JSON), lider, vacantes (JSON), visitas, popular_manual, activa |
-| `postulaciones` | iniciativa_id, nombre, programa, semestre, vacante, habilidades, mensaje, estado |
-| `iniciativas_guardadas` | iniciativa_id |
-| `sprints` | iniciativa_id, nombre, objetivo, fecha_inicio, fecha_fin, estado, orden |
+Proyecto `flut_innovation_hub_77a7800a82`. Todas las columnas son `text` salvo que se indique otro tipo. Roble agrega `_id` (uuid) y `_owner` (usuario que creó la fila) a cada tabla.
+
+| Tabla | Columnas | Uso en la app |
+|---|---|---|
+| `iniciativas` (pública) | titulo, descripcion, categorias (JSON), lider, vacantes (JSON), visitas (int), popular_manual (bool), activa (bool) | Explorar, publicar y editar iniciativas |
+| `postulaciones` | iniciativa_id, nombre, programa, semestre, vacante, habilidades, mensaje, estado | Postularse; el líder acepta o rechaza |
+| `iniciativas_guardadas` | iniciativa_id | Guardados de cada usuario (la app filtra con `isMine`) |
+| `sprints` | iniciativa_id, nombre, objetivo, fecha_inicio, fecha_fin, estado, orden (int) | Sprints del espacio de trabajo |
+| `feedback_sprints` | iniciativa_id, sprint_id, autor, texto, creado_en | Feedback por sprint |
+| `mensajes_workspace` | iniciativa_id, autor, texto, creado_en | Chat del equipo |
+| `comentarios_workspace` | iniciativa_id, autor, texto, creado_en | Comentarios del equipo |
+| `miembros_workspace` | iniciativa_id, miembro_id, nombre, rol_nombre, rol, puede_gestionar_tareas (bool), puede_comentar (bool), puede_chatear (bool) | Integrantes del proyecto y sus permisos |
+| `publicaciones_avance` | iniciativa_id, autor, titulo, texto, creado_en | Comunidad: avances publicados |
+| `comentarios_publicacion` | publicacion_id, iniciativa_id, autor, texto, creado_en | Comunidad: comentarios a los avances |
+
+Las fechas (`creado_en`, `fecha_inicio`, `fecha_fin`) se guardan como texto ISO 8601.
+
+### Permisos del rol `user`
+
+Quien se registra desde la app recibe el rol `user`. Además de `all:create`, `all:read` y `all:execute`, la app necesita:
+
+- `iniciativas`: update, delete
+- `postulaciones`: update (el líder cambia el estado de postulaciones de otros)
+- `iniciativas_guardadas`: update, delete
+- `sprints`: update, delete
+- `miembros_workspace`: update (el líder ajusta los permisos de cada integrante)
+
+Se configuran en la consola de Roble: Configuración → Roles → `user` → Seleccionar permiso → Asignar.
 
 ## Espacio de trabajo del proyecto
 
@@ -67,7 +89,7 @@ Las actividades se sincronizan en el árbol JSON de Roble, en `iniciativas/<id>/
 
 Los sprints se guardan en la tabla `sprints`. El progreso no se persiste como porcentaje: se calcula con las actividades completadas dentro del rango de fechas del sprint o asociadas mediante `sprint_id`.
 
-## Espacio de trabajo local y futura sincronización
+## Espacio de trabajo y sincronización con Roble
 
 La pantalla de trabajo del proyecto está organizada en tres vistas:
 
@@ -77,28 +99,26 @@ La pantalla de trabajo del proyecto está organizada en tres vistas:
   semanas numeradas ni fases predefinidas.
 - **Chat:** comunicación interna del equipo.
 
-Mientras se prepara la integración con Roble, chat y comentarios utilizan
-`InMemoryWorkspaceRepository`, detrás del contrato
-`WorkspaceRepository`. La UI y `WorkspaceController` no dependen de esa
-implementación, por lo que podrá reemplazarse por un datasource remoto sin
-cambiar las pantallas.
+Todo se guarda en Roble a través de `WorkspaceRepositoryImpl`:
 
-La estructura remota prevista es:
+| Recurso | Dónde se guarda |
+|---|---|
+| Actividades | árbol JSON `iniciativas/<id>/actividades` |
+| Sprints | tabla `sprints` |
+| Feedback de sprints | tabla `feedback_sprints` |
+| Mensajes del chat | tabla `mensajes_workspace` |
+| Comentarios del equipo | tabla `comentarios_workspace` |
+| Miembros y permisos | tabla `miembros_workspace` |
+| Publicaciones y sus comentarios | tablas `publicaciones_avance` y `comentarios_publicacion` |
 
-| Recurso | Identificador sugerido | Datos principales |
-|---|---|---|
-| Mensajes | `iniciativas/<id>/mensajes/<messageId>` | autor, texto, creado_en |
-| Comentarios | `iniciativas/<id>/comentarios/<commentId>` | autor, texto, creado_en |
-| Sprints | `iniciativas/<id>/sprints/<sprintId>` | nombre, objetivo, inicio, fin, estado |
-| Miembros | `iniciativas/<id>/miembros/<userId>` | usuario, rol, permisos |
+`InMemoryWorkspaceRepository` queda solo para las pruebas.
 
-El líder de la iniciativa debe ser el administrador inicial. Los permisos
-finales deben validarse en las reglas de Roble, no únicamente en la interfaz.
-Los roles previstos son líder, administrador, colaborador y observador. En la
-versión local, el creador aparece como líder protegido (no se puede degradar
-ni eliminar desde la pantalla) y puede ajustar por miembro las capacidades de
-gestionar tareas, comentar y participar en el chat. Esta misma estructura se
-enviará después como `rol` y `permisos` al nodo de cada miembro en Roble.
+El líder de la iniciativa es el administrador inicial. Al abrir el espacio de
+trabajo, el líder y los integrantes aceptados que aún no estén en
+`miembros_workspace` se agregan automáticamente. Los roles son líder,
+administrador, colaborador y observador; el líder aparece protegido (no se
+puede degradar ni eliminar desde la pantalla) y puede ajustar por miembro las
+capacidades de gestionar tareas, comentar y participar en el chat.
 
 Los guardados se persisten por usuario en `iniciativas_guardadas`. Una
 iniciativa con cero plazas no se muestra como oportunidad en Inicio, pero
