@@ -124,3 +124,16 @@ Los guardados se persisten por usuario en `iniciativas_guardadas`. Una
 iniciativa con cero plazas no se muestra como oportunidad en Inicio, pero
 permanece en Explorar y Guardados con el estado **Proyecto lleno · Trabajo
 iniciado** y sin permitir nuevas postulaciones.
+
+## Plan de pruebas
+
+| Nivel | Qué se prueba | Archivo | Cómo se corre |
+|---|---|---|---|
+| Unitarias | Reglas de postulación y plazas (`InitiativePolicy`) | `test/unit/initiative_policy_test.dart` | `flutter test test/unit` |
+| Unitarias | Lectura de datos de Roble (`decodeJsonList`, `toBool`) | `test/unit/json_utils_test.dart` | `flutter test test/unit` |
+| Widget | Etiqueta de estado de una postulación (`StatusPill`) | `test/widget/status_pill_test.dart` | `flutter test test/widget` |
+| Widget y unitarias | Modelos, controlador de iniciativas, navegación, modo oscuro, actividades | `test/widget_test.dart`, `test/project_activities_test.dart` | `flutter test` |
+| Integración | La app abre en Inicio y Explorar lista las iniciativas | `integration_test/app_test.dart` | `flutter drive --driver=test_driver/integration_test.dart --target=integration_test/app_test.dart -d chrome` |
+
+Las pruebas usan repositorios falsos en memoria, así que no dependen de Roble ni de internet.
+GitHub Actions (`.github/workflows/main.yml`) corre todas las pruebas en cada push a `main` y en cada Pull Request.
