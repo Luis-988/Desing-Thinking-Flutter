@@ -16,7 +16,7 @@ class SavedInitiativeRepositoryImpl implements SavedInitiativeRepository {
       ..clear()
       ..addEntries(
         rows
-            .where((row) => row['iniciativa_id'] != null)
+            .where((row) => row['iniciativa_id'] != null && _remote.isMine(row))
             .map(
               (row) => MapEntry(
                 row['iniciativa_id'].toString(),
