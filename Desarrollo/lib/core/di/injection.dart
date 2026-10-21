@@ -12,6 +12,8 @@ import '../../features/initiatives/data/repositories/project_activity_repository
 import '../../features/initiatives/data/repositories/project_sprint_repository_impl.dart';
 import '../../features/initiatives/data/datasources/project_sprint_remote_data_source.dart';
 import '../../features/initiatives/data/repositories/in_memory_workspace_repository.dart';
+import '../../features/initiatives/data/repositories/workspace_repository_impl.dart';
+import '../../features/initiatives/data/datasources/workspace_remote_data_source.dart';
 import '../../features/initiatives/data/repositories/saved_initiative_repository_impl.dart';
 import '../../features/initiatives/data/repositories/in_memory_saved_initiative_repository.dart';
 import '../../features/initiatives/domain/repositories/initiative_repository.dart';
@@ -85,7 +87,9 @@ class AppDependencies {
     projectSprintRepository: ProjectSprintRepositoryImpl(
       ProjectSprintRemoteDataSource(RobleClient.db),
     ),
-    workspaceRepository: InMemoryWorkspaceRepository(),
+    workspaceRepository: WorkspaceRepositoryImpl(
+      WorkspaceRemoteDataSource(RobleClient.db),
+    ),
     sprintFeedbackRepository: SprintFeedbackRepositoryImpl(
       SprintFeedbackRemoteDataSource(RobleClient.db),
     ),
