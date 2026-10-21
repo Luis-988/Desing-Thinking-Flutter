@@ -42,27 +42,31 @@ class InitiativeCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  if (initiative.isPopular)
-                    const AppTag.accent(
-                      'MÁS POPULAR',
-                      icon: Icons.local_fire_department,
+                  Expanded(
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        if (initiative.isPopular)
+                          const AppTag.accent(
+                            'MÁS POPULAR',
+                            icon: Icons.local_fire_department,
+                          ),
+                        if (isFull)
+                          const AppTag.warning(
+                            'PROYECTO LLENO',
+                            icon: Icons.groups_outlined,
+                          )
+                        else if (isAlmostFull)
+                          const AppTag.warning(
+                            'ÚLTIMA PLAZA',
+                            icon: Icons.bolt,
+                          ),
+                        if (initiative.isMine) const AppTag('Mi iniciativa'),
+                      ],
                     ),
-                  if (isFull) ...[
-                    if (initiative.isPopular) const SizedBox(width: 6),
-                    const AppTag.warning(
-                      'PROYECTO LLENO',
-                      icon: Icons.groups_outlined,
-                    ),
-                  ] else if (isAlmostFull) ...[
-                    if (initiative.isPopular) const SizedBox(width: 6),
-                    const AppTag.warning('ÚLTIMA PLAZA', icon: Icons.bolt),
-                  ],
-                  if (initiative.isMine) ...[
-                    if (initiative.isPopular) const SizedBox(width: 6),
-                    const AppTag('Mi iniciativa'),
-                  ],
-                  const Spacer(),
-                  if (ownerActions != null) ownerActions!,
+                  ),
+                  ?ownerActions,
                   BookmarkButton(initiativeId: initiative.id),
                 ],
               ),
@@ -118,7 +122,9 @@ class InitiativeCard extends StatelessWidget {
                       style: AppText.body,
                     ),
                     const SizedBox(height: 12),
-                    Row(
+                    Wrap(
+                      spacing: 16,
+                      runSpacing: 6,
                       children: [
                         _Stat(
                           icon: Icons.visibility_outlined,
@@ -131,7 +137,6 @@ class InitiativeCard extends StatelessWidget {
                           text:
                               '${initiative.openSlots} ${initiative.openSlots == 1 ? 'plaza' : 'plazas'}',
                         ),
-                        const Spacer(),
                         Text(
                           isFull
                               ? 'Proyecto lleno · Trabajo iniciado'

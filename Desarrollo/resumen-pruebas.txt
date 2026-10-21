@@ -1,0 +1,21 @@
+=== RESUMEN DE PRUEBAS ===
+
+Existentes (widget_test / project_activities): 31 pasaron, 0 fallaron
+Unitarias: 12 pasaron, 0 fallaron
+
+TOTAL: 43/43 pruebas pasaron
+
+=== COBERTURA ===
+Total: 42.3% (1605 de 3795 líneas)
+
+Archivos con más cobertura:
+  100%  lib/core/error/app_exception.dart
+  100%  lib/features/initiatives/domain/entities/project_activity.dart
+  100%  lib/features/auth/domain/usecases/restore_session.dart
+  100%  lib/features/initiatives/data/repositories/in_memory_saved_initiative_repository.dart
+  100%  lib/features/initiatives/domain/usecases/get_applications.dart
+  100%  lib/features/initiatives/domain/usecases/get_initiatives.dart
+  100%  lib/features/initiatives/domain/usecases/get_project_activities.dart
+  100%  lib/features/initiatives/domain/usecases/create_project_activity.dart
+  100%  lib/features/initiatives/domain/usecases/delete_project_activity.dart
+  100%  lib/features/initiatives/domain/usecases/save_initiative_views.dart

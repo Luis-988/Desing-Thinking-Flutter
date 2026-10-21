@@ -17,6 +17,7 @@ import 'package:desing_thinking_flutter/features/initiatives/domain/entities/pro
 import 'package:desing_thinking_flutter/features/initiatives/domain/repositories/initiative_repository.dart';
 import 'package:desing_thinking_flutter/features/initiatives/domain/repositories/project_activity_repository.dart';
 import 'package:desing_thinking_flutter/features/initiatives/presentation/providers/initiatives_controller.dart';
+import 'package:desing_thinking_flutter/features/initiatives/presentation/widgets/initiative_card.dart';
 import 'package:desing_thinking_flutter/main.dart';
 
 class FakeAuthRepository implements AuthRepository {
@@ -215,6 +216,53 @@ InitiativeApplication sampleApplication({
 );
 
 void main() {
+  group('InitiativeCard', () {
+    testWidgets('se adapta a un ancho móvil sin desbordarse', (tester) async {
+      tester.view.physicalSize = const Size(300, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      final controller = buildController(FakeInitiativeRepository());
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        ChangeNotifierProvider.value(
+          value: controller,
+          child: MaterialApp(
+            home: Scaffold(
+              body: InitiativeCard(
+                initiative: const Initiative(
+                  id: 'mobile',
+                  title: 'Seguimiento de nadador',
+                  categories: ['Tecnología', 'Deporte'],
+                  description: 'Una aplicación para apoyar a los deportistas.',
+                  leader: 'Luis Robles',
+                  isPopularManually: true,
+                  isActive: true,
+                  isMine: true,
+                  roles: [
+                    InitiativeRole(
+                      name: 'Desarrollador Backend',
+                      description: 'Construir servicios.',
+                      slots: 0,
+                    ),
+                    InitiativeRole(
+                      name: 'Desarrollador Frontend',
+                      description: 'Crear la interfaz.',
+                      slots: 0,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   group('Initiative', () {
     test('es popular al alcanzar diez visitas', () {
       const base = Initiative(
