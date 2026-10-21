@@ -18,4 +18,13 @@ class WorkspaceRemoteDataSource {
 
   Future<Map<String, dynamic>> createComment(Map<String, dynamic> row) =>
       _db.create(RobleClient.tablaComentariosWorkspace, row);
+
+  Future<List<Map<String, dynamic>>> readMembers() =>
+      _db.read(RobleClient.tablaMiembrosWorkspace);
+
+  Future<Map<String, dynamic>> createMember(Map<String, dynamic> row) =>
+      _db.create(RobleClient.tablaMiembrosWorkspace, row);
+
+  Future<void> updateMember(String id, Map<String, dynamic> row) =>
+      _db.update(RobleClient.tablaMiembrosWorkspace, id, row);
 }
