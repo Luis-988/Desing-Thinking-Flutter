@@ -7,6 +7,7 @@ abstract final class HomeTabs {
   static const myInitiatives = 2;
   static const saved = 3;
   static const profile = 4;
+  static const community = 3;
 }
 
 /// Permite cambiar de pestaña desde cualquier pantalla (por ejemplo, tras

@@ -43,6 +43,7 @@ class ProjectActivityRepositoryImpl implements ProjectActivityRepository {
         activity.dueDate.day,
       ).toIso8601String(),
       'completada': activity.isCompleted,
+      if (activity.sprintId != null) 'sprint_id': activity.sprintId,
     }),
   );
 

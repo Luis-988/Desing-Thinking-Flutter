@@ -85,6 +85,11 @@ class ScreenHeader extends StatelessWidget {
                 ),
               ),
               if (trailing != null) trailing!,
+              IconButton(
+                tooltip: 'Abrir menú',
+                onPressed: () => Scaffold.maybeOf(context)?.openDrawer(),
+                icon: const Icon(Icons.menu, color: Colors.white),
+              ),
             ],
           ),
         ),

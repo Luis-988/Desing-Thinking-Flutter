@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:roble/roble.dart';
 
 import '../../domain/entities/auth_result.dart';
@@ -16,7 +17,9 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       if (!await _remote.restoreSession()) return null;
       return ProfileUserModel.fromProfile(await _remote.currentUser());
-    } catch (_) {
+    } on RobleApiException catch (error, stackTrace) {
+      debugPrint('No se pudo restaurar la sesión desde Roble: $error');
+      debugPrintStack(stackTrace: stackTrace);
       return null;
     }
   }
@@ -73,6 +76,9 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> logout() async {
     try {
       await _remote.logout();
-    } catch (_) {}
+    } on RobleApiException catch (error, stackTrace) {
+      debugPrint('No se pudo cerrar la sesión remota: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
   }
 }

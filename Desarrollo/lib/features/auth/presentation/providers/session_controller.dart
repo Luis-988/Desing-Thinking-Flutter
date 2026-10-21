@@ -37,7 +37,9 @@ class SessionController extends ChangeNotifier {
   Future<void> restore() async {
     try {
       _user = await _restoreSession();
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('No se pudo restaurar la sesión local: $error');
+      debugPrintStack(stackTrace: stackTrace);
       _user = null;
     }
     _status = _user == null ? SessionStatus.guest : SessionStatus.authenticated;
@@ -74,8 +76,10 @@ class SessionController extends ChangeNotifier {
   Future<void> logout() async {
     try {
       await _logoutUser();
-    } catch (_) {
+    } catch (error, stackTrace) {
       // Aunque Roble falle, la sesión local se cierra.
+      debugPrint('No se pudo cerrar la sesión remota: $error');
+      debugPrintStack(stackTrace: stackTrace);
     }
     _user = null;
     _status = SessionStatus.guest;

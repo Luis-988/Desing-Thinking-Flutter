@@ -7,6 +7,7 @@ import '../../../auth/presentation/providers/session_controller.dart';
 import '../../domain/entities/initiative.dart';
 import '../../domain/entities/initiative_application.dart';
 import '../../domain/services/initiative_insights.dart';
+import '../../domain/services/initiative_policy.dart';
 import '../../domain/usecases/create_initiative.dart';
 import '../../domain/usecases/delete_initiative.dart';
 import '../../domain/usecases/get_applications.dart';
@@ -15,13 +16,15 @@ import '../../domain/usecases/save_initiative_views.dart';
 import '../../domain/usecases/submit_application.dart';
 import '../../domain/usecases/update_application_status.dart';
 import '../../domain/usecases/update_initiative.dart';
+import '../../domain/repositories/saved_initiative_repository.dart';
+import 'initiative_catalog_state.dart';
 
-enum InitiativeSort { recent, popular, availableSlots }
+export 'initiative_catalog_state.dart' show InitiativeSort;
 
 /// Estado de iniciativas y postulaciones. Las pantallas lo observan con
 /// Provider y nunca hablan directamente con la capa de datos.
 class InitiativesController extends ChangeNotifier {
-  static const allFilter = 'Todos';
+  static const allFilter = InitiativeCatalogState.allFilter;
 
   final GetInitiatives _getInitiatives;
   final CreateInitiative _createInitiative;
@@ -31,6 +34,7 @@ class InitiativesController extends ChangeNotifier {
   final GetApplications _getApplications;
   final SubmitApplication _submitApplication;
   final UpdateApplicationStatus _updateApplicationStatus;
+  final SavedInitiativeRepository? _savedRepository;
 
   InitiativesController({
     required GetInitiatives getInitiatives,
@@ -41,6 +45,7 @@ class InitiativesController extends ChangeNotifier {
     required GetApplications getApplications,
     required SubmitApplication submitApplication,
     required UpdateApplicationStatus updateApplicationStatus,
+    SavedInitiativeRepository? savedInitiativeRepository,
   }) : _getInitiatives = getInitiatives,
        _createInitiative = createInitiative,
        _updateInitiative = updateInitiative,
@@ -48,14 +53,11 @@ class InitiativesController extends ChangeNotifier {
        _saveViews = saveViews,
        _getApplications = getApplications,
        _submitApplication = submitApplication,
-       _updateApplicationStatus = updateApplicationStatus;
+       _updateApplicationStatus = updateApplicationStatus,
+       _savedRepository = savedInitiativeRepository;
 
-  List<Initiative> _initiatives = [];
+  final InitiativeCatalogState _catalog = InitiativeCatalogState();
   List<InitiativeApplication> _applications = [];
-  final Set<String> _savedIds = {};
-  String _filter = allFilter;
-  String _query = '';
-  InitiativeSort _sort = InitiativeSort.recent;
   bool _isLoading = true;
   String? _error;
   SessionStatus? _lastSessionStatus;
@@ -64,33 +66,21 @@ class InitiativesController extends ChangeNotifier {
 
   bool get isLoading => _isLoading;
   String? get error => _error;
-  String get filter => _filter;
-  String get query => _query;
-  InitiativeSort get sort => _sort;
-  List<Initiative> get initiatives => List.unmodifiable(_initiatives);
+  String get filter => _catalog.filter;
+  String get query => _catalog.query;
+  InitiativeSort get sort => _catalog.sort;
+  List<Initiative> get initiatives => _catalog.initiatives;
   List<InitiativeApplication> get applications =>
       List.unmodifiable(_applications);
 
-  List<Initiative> get activeInitiatives =>
-      _initiatives.where((item) => item.isActive).toList();
-
-  List<Initiative> get popularInitiatives =>
-      activeInitiatives.where((item) => item.isPopular).toList();
-
-  /// Selección breve para Inicio basada en popularidad, actividad y plazas.
-  List<Initiative> get recommendedInitiatives {
-    return InitiativeInsights.recommended(_initiatives);
-  }
-
-  /// Las más recientes primero (Roble las devuelve en orden de creación).
-  List<Initiative> get recentInitiatives =>
-      activeInitiatives.reversed.take(3).toList();
-
-  List<Initiative> get myInitiatives =>
-      _initiatives.where((item) => item.isMine).toList();
-
-  List<Initiative> get savedInitiatives =>
-      _initiatives.where((item) => _savedIds.contains(item.id)).toList();
+  List<Initiative> get activeInitiatives => _catalog.activeInitiatives;
+  List<Initiative> get availableInitiatives => _catalog.availableInitiatives;
+  List<Initiative> get popularInitiatives => _catalog.popularInitiatives;
+  List<Initiative> get recommendedInitiatives =>
+      _catalog.recommendedInitiatives;
+  List<Initiative> get recentInitiatives => _catalog.recentInitiatives;
+  List<Initiative> get myInitiatives => _catalog.myInitiatives;
+  List<Initiative> get savedInitiatives => _catalog.savedInitiatives;
 
   List<InitiativeApplication> get myApplications =>
       _applications.where((item) => item.isMine).toList();
@@ -116,81 +106,18 @@ class InitiativesController extends ChangeNotifier {
       .where((item) => item.status == ApplicationStatus.pending)
       .length;
 
-  int get openSlotsCount =>
-      InitiativeInsights.openSlotsCount(activeInitiatives);
-
-  List<RoleDemand> get roleDemand =>
-      InitiativeInsights.roleDemand(activeInitiatives);
-
-  /// Categorías disponibles para intereses y tipos de proyecto.
-  List<String> get categoryOptions {
-    final options = <String>{};
-    for (final initiative in _initiatives) {
-      options.addAll(initiative.categories);
-    }
-    return _sortedFilterOptions(options);
-  }
-
-  /// Roles disponibles en las iniciativas activas.
-  List<String> get roleOptions {
-    final options = <String>{};
-    for (final initiative in _initiatives) {
-      options.addAll(initiative.roles.map((role) => role.name));
-    }
-    return _sortedFilterOptions(options);
-  }
-
-  /// Filtros disponibles combinados, conservado para accesos existentes.
-  List<String> get filterOptions => [
-    allFilter,
-    ...{...categoryOptions, ...roleOptions},
-  ];
-
-  List<String> _sortedFilterOptions(Set<String> options) {
-    return options.where((item) => item.isNotEmpty).toList()..sort();
-  }
-
-  List<Initiative> get filteredInitiatives {
-    final text = _query.trim().toLowerCase();
-    final filtered = activeInitiatives.where((initiative) {
-      final matchesFilter =
-          _filter == allFilter ||
-          initiative.categories.contains(_filter) ||
-          initiative.roles.any((role) => role.name == _filter);
-      if (!matchesFilter) return false;
-      if (text.isEmpty) return true;
-      return initiative.title.toLowerCase().contains(text) ||
-          initiative.description.toLowerCase().contains(text) ||
-          initiative.leader.toLowerCase().contains(text) ||
-          initiative.categories.any((c) => c.toLowerCase().contains(text)) ||
-          initiative.roles.any((r) => r.name.toLowerCase().contains(text));
-    }).toList();
-    filtered.sort(_compareBySort);
-    return filtered;
-  }
-
-  int _compareBySort(Initiative a, Initiative b) {
-    switch (_sort) {
-      case InitiativeSort.popular:
-        return _popularityScore(b).compareTo(_popularityScore(a));
-      case InitiativeSort.availableSlots:
-        return b.openSlots.compareTo(a.openSlots);
-      case InitiativeSort.recent:
-        return _initiatives.indexOf(b).compareTo(_initiatives.indexOf(a));
-    }
-  }
-
-  int _popularityScore(Initiative initiative) =>
-      (initiative.isPopular ? 1000000 : 0) + initiative.views;
+  int get openSlotsCount => _catalog.openSlotsCount;
+  List<RoleDemand> get roleDemand => _catalog.roleDemand;
+  List<String> get categoryOptions => _catalog.categoryOptions;
+  List<String> get roleOptions => _catalog.roleOptions;
+  List<String> get filterOptions => _catalog.filterOptions;
+  List<Initiative> get filteredInitiatives => _catalog.filteredInitiatives;
 
   Initiative? initiativeById(String id) {
-    for (final initiative in _initiatives) {
-      if (initiative.id == id) return initiative;
-    }
-    return null;
+    return _catalog.initiativeById(id);
   }
 
-  bool isSaved(String initiativeId) => _savedIds.contains(initiativeId);
+  bool isSaved(String initiativeId) => _catalog.isSaved(initiativeId);
 
   /// Mi postulación a un rol concreto, si existe.
   InitiativeApplication? myApplicationFor(String initiativeId, String role) {
@@ -212,7 +139,7 @@ class InitiativesController extends ChangeNotifier {
     final isFirstLoad = _lastSessionStatus == null;
     _lastSessionStatus = status;
     if (!isFirstLoad && status == SessionStatus.guest) {
-      _savedIds.clear();
+      _catalog.clearSaved();
     }
     // Se difiere para no notificar mientras el árbol de widgets se construye.
     scheduleMicrotask(load);
@@ -223,8 +150,17 @@ class InitiativesController extends ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
-      _initiatives = await _getInitiatives();
+      _catalog.setInitiatives(await _getInitiatives());
       _applications = await _getApplications();
+      final savedRepository = _savedRepository;
+      if (savedRepository != null) {
+        try {
+          _catalog.setSaved(await savedRepository.getSavedInitiativeIds());
+        } catch (error, stackTrace) {
+          debugPrint('No se pudieron cargar los guardados: $error');
+          debugPrintStack(stackTrace: stackTrace);
+        }
+      }
     } on AppException catch (e) {
       _error = e.message;
     } catch (_) {
@@ -237,41 +173,55 @@ class InitiativesController extends ChangeNotifier {
   // ---------------------------------------------------------------- filtros
 
   void setFilter(String value) {
-    _filter = value;
+    _catalog.setFilter(value);
     notifyListeners();
   }
 
   void setQuery(String value) {
-    _query = value;
+    _catalog.setQuery(value);
     notifyListeners();
   }
 
   void setSort(InitiativeSort value) {
-    if (_sort == value) return;
-    _sort = value;
+    if (_catalog.sort == value) return;
+    _catalog.setSort(value);
     notifyListeners();
   }
 
   void clearFilters() {
-    _filter = allFilter;
-    _query = '';
+    _catalog.clearFilters();
     notifyListeners();
   }
 
   // --------------------------------------------------------------- guardados
 
-  /// Por ahora los guardados viven en memoria; la fase de Roble los
-  /// persistirá en una tabla propia sin cambiar esta interfaz.
-  void toggleSaved(String initiativeId) {
-    if (!_savedIds.remove(initiativeId)) _savedIds.add(initiativeId);
+  /// Persiste el cambio cuando existe un repositorio remoto configurado.
+  Future<void> toggleSaved(String initiativeId) async {
+    final wasSaved = _catalog.isSaved(initiativeId);
+    _catalog.toggleSaved(initiativeId);
     notifyListeners();
+
+    final savedRepository = _savedRepository;
+    if (savedRepository == null) return;
+    try {
+      if (wasSaved) {
+        await savedRepository.removeInitiative(initiativeId);
+      } else {
+        await savedRepository.saveInitiative(initiativeId);
+      }
+    } catch (error, stackTrace) {
+      _catalog.toggleSaved(initiativeId);
+      notifyListeners();
+      debugPrint('No se pudo persistir el guardado de $initiativeId: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
   }
 
   // ------------------------------------------------------------ iniciativas
 
   Future<void> create(Initiative initiative) async {
     final saved = await _createInitiative(initiative);
-    _initiatives = [..._initiatives, saved];
+    _catalog.add(saved);
     notifyListeners();
   }
 
@@ -290,8 +240,7 @@ class InitiativesController extends ChangeNotifier {
 
   Future<void> delete(Initiative initiative) async {
     await _deleteInitiative(initiative);
-    _initiatives = _initiatives.where((i) => i.id != initiative.id).toList();
-    _savedIds.remove(initiative.id);
+    _catalog.remove(initiative);
     notifyListeners();
   }
 
@@ -303,8 +252,10 @@ class InitiativesController extends ChangeNotifier {
     _replace(updated);
     try {
       await _saveViews(updated);
-    } catch (_) {
+    } catch (error, stackTrace) {
       // Las visitas son secundarias: si falla el guardado quedan en local.
+      debugPrint('No se pudieron registrar las visitas: $error');
+      debugPrintStack(stackTrace: stackTrace);
     }
   }
 
@@ -312,13 +263,12 @@ class InitiativesController extends ChangeNotifier {
 
   Future<InitiativeApplication> apply(InitiativeApplication application) async {
     final initiative = initiativeById(application.initiativeId);
-    if (initiative != null && initiative.isMine) {
-      throw const AppException('No puedes postularte a tu propia iniciativa.');
-    }
-    if (myApplicationFor(application.initiativeId, application.roleName) !=
-        null) {
-      throw const AppException('Ya te postulaste a esta vacante.');
-    }
+    InitiativePolicy.requireCanApply(
+      initiative: initiative,
+      alreadyApplied:
+          myApplicationFor(application.initiativeId, application.roleName) !=
+          null,
+    );
     final saved = await _submitApplication(application);
     _applications = [..._applications, saved];
     notifyListeners();
@@ -346,7 +296,7 @@ class InitiativesController extends ChangeNotifier {
     if (status == ApplicationStatus.accepted && !wasAlreadyAccepted) {
       final initiative = initiativeById(application.initiativeId);
       if (initiative != null) {
-        final updatedInitiative = _consumeAcceptedRoleSlot(
+        final updatedInitiative = InitiativePolicy.consumeAcceptedRoleSlot(
           initiative,
           application.roleName,
         );
@@ -360,25 +310,8 @@ class InitiativesController extends ChangeNotifier {
 
   // --------------------------------------------------------------- internos
 
-  Initiative _consumeAcceptedRoleSlot(Initiative initiative, String roleName) {
-    final updatedRoles = initiative.roles.map((role) {
-      if (role.name != roleName) return role;
-      final nextSlots = role.slots > 0 ? role.slots - 1 : 0;
-      return InitiativeRole(
-        name: role.name,
-        description: role.description,
-        slots: nextSlots,
-        skills: role.skills,
-      );
-    }).toList();
-
-    return initiative.copyWith(roles: updatedRoles);
-  }
-
   void _replace(Initiative updated) {
-    _initiatives = [
-      for (final item in _initiatives) item.id == updated.id ? updated : item,
-    ];
+    _catalog.replace(updated);
     notifyListeners();
   }
 }

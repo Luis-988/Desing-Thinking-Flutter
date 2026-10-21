@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../../../../core/network/roble_guard.dart';
 import '../../domain/entities/initiative.dart';
 import '../../domain/entities/initiative_application.dart';
@@ -46,8 +48,10 @@ class InitiativeRepositoryImpl implements InitiativeRepository {
       await _remote.updateInitiative(initiative.id, {
         'visitas': initiative.views,
       });
-    } catch (_) {
-      // Si el rol no puede actualizar, las visitas quedan solo en local.
+    } catch (error, stackTrace) {
+      // Las visitas son secundarias: si falla el guardado quedan en local.
+      debugPrint('No se pudieron guardar las visitas: $error');
+      debugPrintStack(stackTrace: stackTrace);
     }
   }
 
