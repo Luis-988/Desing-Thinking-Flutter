@@ -14,6 +14,7 @@ class RobleClient {
   static const String tablaSprints = 'sprints';
   static const String tablaMensajesWorkspace = 'mensajes_workspace';
   static const String tablaComentariosWorkspace = 'comentarios_workspace';
+  static const String tablaMiembrosWorkspace = 'miembros_workspace';
   static const String tablaFeedbackSprints = 'feedback_sprints';
   static const String tablaPublicacionesAvance = 'publicaciones_avance';
   static const String tablaComentariosPublicacion =
