@@ -6,6 +6,7 @@ import '../../domain/entities/workspace_publication.dart';
 import '../../domain/entities/publication_comment.dart';
 import '../../domain/repositories/workspace_repository.dart';
 import '../datasources/workspace_remote_data_source.dart';
+import '../models/json_utils.dart';
 import 'in_memory_workspace_repository.dart';
 
 class WorkspaceRepositoryImpl implements WorkspaceRepository {
@@ -90,12 +91,35 @@ class WorkspaceRepositoryImpl implements WorkspaceRepository {
   }
 
   @override
-  Future<List<WorkspaceMember>> getMembers(String initiativeId) =>
-      _membersRepository.getMembers(initiativeId);
+  Future<List<WorkspaceMember>> getMembers(String initiativeId) async {
+    final rows = await guardRoble(_remote.readMembers);
+    return rows
+        .where((row) => row['iniciativa_id']?.toString() == initiativeId)
+        .map(_memberFromRow)
+        .toList();
+  }
 
+  /// Crea el miembro si no existe en la iniciativa; si existe, lo actualiza.
   @override
-  Future<WorkspaceMember> updateMember(WorkspaceMember member) =>
-      _membersRepository.updateMember(member);
+  Future<WorkspaceMember> updateMember(WorkspaceMember member) async {
+    final rows = await guardRoble(_remote.readMembers);
+    Map<String, dynamic>? existing;
+    for (final row in rows) {
+      if (row['iniciativa_id']?.toString() == member.initiativeId &&
+          row['miembro_id']?.toString() == member.id) {
+        existing = row;
+        break;
+      }
+    }
+    final data = _memberToRow(member);
+    if (existing == null) {
+      await guardRoble(() => _remote.createMember(data));
+    } else {
+      final rowId = existing['_id'].toString();
+      await guardRoble(() => _remote.updateMember(rowId, data));
+    }
+    return member;
+  }
 
   @override
   Future<List<WorkspacePublication>> getPublications(String initiativeId) =>
@@ -115,6 +139,31 @@ class WorkspaceRepositoryImpl implements WorkspaceRepository {
   Future<PublicationComment> addPublicationComment(
     PublicationComment comment,
   ) => _membersRepository.addPublicationComment(comment);
+
+  Map<String, dynamic> _memberToRow(WorkspaceMember member) => {
+    'iniciativa_id': member.initiativeId,
+    'miembro_id': member.id,
+    'nombre': member.name,
+    'rol_nombre': member.roleName,
+    'rol': member.role.name,
+    'puede_gestionar_tareas': member.canManageTasks,
+    'puede_comentar': member.canComment,
+    'puede_chatear': member.canChat,
+  };
+
+  WorkspaceMember _memberFromRow(Map<String, dynamic> row) => WorkspaceMember(
+    id: (row['miembro_id'] ?? row['_id'] ?? '').toString(),
+    initiativeId: (row['iniciativa_id'] ?? '').toString(),
+    name: (row['nombre'] ?? '').toString(),
+    roleName: (row['rol_nombre'] ?? '').toString(),
+    role: WorkspaceMemberRole.values.firstWhere(
+      (role) => role.name == row['rol'],
+      orElse: () => WorkspaceMemberRole.collaborator,
+    ),
+    canManageTasks: toBool(row['puede_gestionar_tareas']),
+    canComment: toBool(row['puede_comentar']),
+    canChat: toBool(row['puede_chatear']),
+  );
 
   WorkspaceMessage _messageFromRow(Map<String, dynamic> row) =>
       WorkspaceMessage(
