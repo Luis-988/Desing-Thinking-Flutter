@@ -9,6 +9,8 @@ class SavedInitiativeRemoteDataSource {
 
   bool get isLoggedIn => _db.isLoggedIn;
 
+  bool isMine(Map<String, dynamic> row) => _db.isMine(row);
+
   Future<List<Map<String, dynamic>>> readSaved() =>
       _db.read(RobleClient.tablaIniciativasGuardadas);
 
