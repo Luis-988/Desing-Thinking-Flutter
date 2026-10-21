@@ -57,12 +57,14 @@ class WorkspaceController extends ChangeNotifier {
           : (await _publicFeedRepository.getComments())
                 .where((item) => item.initiativeId == initiativeId)
                 .toList();
-      if (_members.isEmpty && initialMembers.isNotEmpty) {
-        for (final member in initialMembers) {
-          await _repository.updateMember(member);
-        }
-        _members = List.of(initialMembers);
+      final knownIds = _members.map((member) => member.id).toSet();
+      final missing = initialMembers
+          .where((member) => !knownIds.contains(member.id))
+          .toList();
+      for (final member in missing) {
+        await _repository.updateMember(member);
       }
+      _members = [..._members, ...missing];
     } catch (_) {
       _error = 'No se pudo cargar la información del proyecto.';
     } finally {
